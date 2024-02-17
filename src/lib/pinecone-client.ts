@@ -8,8 +8,8 @@ async function createIndex(client: Pinecone, indexName: string) {
     try {
         await client.createIndex({
             name: indexName,
-            dimension: 8, // Replace with your model dimensions
-            metric: 'euclidean', // Replace with your model metric
+            dimension: 1536, // Replace with your model dimensions
+            metric: 'cosine', // Replace with your model metric
             spec: {
                 serverless: {
                     cloud: 'aws',
@@ -26,17 +26,18 @@ async function createIndex(client: Pinecone, indexName: string) {
 }
 
 async function initPineconeClient() {
+    // TODO: in case indes isn't ready we will have to find a workaround
     try {
         const pineconeClient = new Pinecone({
             apiKey: env.PINECONE_API_KEY
         })
         const indexName = env.PINECONE_INDEX_NAME;
-        const existingIndexes = await pineconeClient.listIndexes();
+        const useIndex = await pineConeIndexUp(pineconeClient, indexName)
 
-        if(!existingIndexes.indexes?.includes){
+        if(!useIndex){
             createIndex(pineconeClient, indexName);
         }else{
-            console.log("index already exists");
+            console.log("index already exists and is ready");
         }
         return pineconeClient;
     } catch (err) {
@@ -45,9 +46,20 @@ async function initPineconeClient() {
     }
 }
 
-export async function getPineConeClinet() {
+export async function getPineConeClient() {
     if(!pineconeClientInstance){
         pineconeClientInstance = await initPineconeClient();
     }
     return pineconeClientInstance;
+}
+
+async function pineConeIndexUp(pineconeClient:Pinecone,index:string){
+    try{
+        const indexReady = (await pineconeClient.describeIndex(index)).status.ready === true
+        return indexReady
+    }catch(err){
+        // if there is an error then the index wasn't found
+        console.log(err);
+        return false
+    }
 }
