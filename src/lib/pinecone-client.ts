@@ -46,7 +46,7 @@ async function initPineconeClient() {
     }
 }
 
-export async function getPineConeClient() {
+export async function getPineconeClient() {
     if(!pineconeClientInstance){
         pineconeClientInstance = await initPineconeClient();
     }
