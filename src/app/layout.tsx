@@ -16,6 +16,13 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   title: "Chat-pdf",
   description: "Made with love by helix",
+  icons: {
+    icon: [
+      {
+        url: '/icon.png'
+      }
+    ]
+  }
 };
 
 export default function RootLayout({
@@ -26,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cn(
-        "min-h-screen bg-background font-sans antialiased",
+        "bg-background font-sans antialiased",
         fontSans.variable
       )}>
         <ThemeProvider
@@ -35,9 +42,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
-          <div className="p-2">
-            {children}
+          <div className="flex flex-col overflow-hidden min-h-screen">
+            <Header />
+            <div className="p-2 grow relative">
+              <div className="absolute top-0 left-0 h-full w-full">
+                {children}
+              </div>
+            </div>
           </div>
         </ThemeProvider>
       </body>

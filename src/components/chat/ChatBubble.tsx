@@ -1,6 +1,9 @@
+'use client'
+
 import Balancer from "react-wrap-balancer"
 import { Message } from "ai/react"
 import Markdown from 'react-markdown'
+import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../ui/accordion";
 import { formattedSourceText } from "@/lib/utils";
@@ -26,7 +29,6 @@ const ChatBubble = ({
 
   const wrappedMessage = wrappedText(content);
 
-
   return (
     <Card className="mb-3">
       <CardHeader>
@@ -38,6 +40,7 @@ const ChatBubble = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="text-sm">
+        {!wrappedMessage.length && <Skeleton className="h-2.5 rounded-sm" />}
         <Balancer>{wrappedMessage}</Balancer>
       </CardContent>
       <CardFooter>

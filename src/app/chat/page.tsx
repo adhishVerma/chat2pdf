@@ -1,31 +1,61 @@
+"use client"
+
 import ChatBubble from '@/components/chat/ChatBubble'
 import ChatInput from '@/components/chat/ChatInput'
+import { getSources, initialMessages, scrollToEnd } from '@/lib/utils'
 import { Message } from 'ai'
-import React from 'react'
+import { useChat } from 'ai/react'
+import React, { useEffect, useRef } from 'react'
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+} from "@/components/ui/resizable"
+import ChatSidebar from '@/components/chat/ChatSidebar'
+import PDFviewer from '@/components/pdf-preview/PDFviewer'
+import PDFUpload from '@/components/pdf-preview/PDFUpload'
+
+
 
 const ChatPage = () => {
-    const messages: Message[] = [
-        { role: 'assistant', content: "Hey I am you AI", id: "1" },
-        { role: 'user', content: "Hey I am the user", id: "2" }
-    ]
 
-    const sources = ["I am Source One", "I am Source two", "I am Source three"]
+    const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
+        initialMessages
+    });
+
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        setTimeout(() => scrollToEnd(containerRef), 100)
+    }, [messages])
 
     return (
-        <div className='rounded-2xl border flex flex-col justify-between'>
-            <div className='p-4 overflow-auto'>
-                {messages.map(({ id, role, content }: Message, index) => (
-                    <ChatBubble
-                        key={index}
-                        role={role}
-                        content={content}
-                        sources={role !== 'assistant' ? [] : sources}
-                    />
-                ))}
-                <ChatInput />
-            </div>
+        <div className='w-full rounded-sm max-w-7xl mx-auto h-full'>
+            <ResizablePanelGroup direction="horizontal" className='w-full h-full'>
+                <ResizablePanel defaultSize={50}>
+                    {/* <ChatSidebar /> */}
+                    {/* <PDFviewer /> */}
+                    <PDFUpload/>
+                </ResizablePanel>
+                <ResizableHandle />
+                <ResizablePanel defaultSize={50} className='min-h-full w-full flex flex-col p-4 border'>
+                    <div className='overflow-auto mb-3 grow no-scrollbar' ref={containerRef}>
+                        {messages.map(({ id, role, content }: Message, index) => (
+                            <ChatBubble
+                                key={index}
+                                role={role}
+                                content={content}
+                                sources={data?.length ? getSources(data, role, index) : []}
+                            />
+                        ))}
+                    </div>
+                    <ChatInput submitHandler={handleSubmit} inputChangeHandler={handleInputChange} input={input} isLoading={isLoading} />
+                </ResizablePanel>
+            </ResizablePanelGroup>
+
         </div>
     )
 }
+
 
 export default ChatPage

@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const Header = () => {
     return (
-        <div className="w-screen p-2">
+        <div className="w-screen p-2 grow-0">
             <nav className="w-full flex max-w-7xl mx-auto items-center justify-between">
                 <Link href="/">
                     <div className="flex gap-2 items-center">

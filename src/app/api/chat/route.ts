@@ -27,7 +27,7 @@ export async function POST(req:NextRequest) {
         return streamingTextResponse;
     }catch(err){
         console.error("Internal Server error", err);
-        return NextResponse.json("Error: Something went wron. Try again!!", {
+        return NextResponse.json("Error: Something went wrong. Try again!!", {
             status : 500,
         })
     }
