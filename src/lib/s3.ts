@@ -1,4 +1,4 @@
-import { PutObjectCommandOutput, S3} from '@aws-sdk/client-s3';
+import { PutObjectCommandInput, PutObjectCommandOutput, S3 } from '@aws-sdk/client-s3';
 
 export async function uploadToS3(file: File): Promise<{ file_key: string; file_name: string }> {
 
@@ -17,10 +17,11 @@ export async function uploadToS3(file: File): Promise<{ file_key: string; file_n
             const file_key = `uploads/${Date.now().toString()}_${file.name.replace(" ", "-")}`
 
             // file upload params
-            const params = {
+            const params: PutObjectCommandInput = {
                 Bucket: process.env.NEXT_PUBLIC_S3_BUCKET_NAME,
                 Key: file_key,
-                Body: file
+                Body: file,
+                ContentType: 'application/pdf'
             }
 
             s3.putObject(params, (err: any, data: PutObjectCommandOutput | undefined) => {
@@ -36,6 +37,7 @@ export async function uploadToS3(file: File): Promise<{ file_key: string; file_n
 }
 
 export function getS3Url(file_key: string) {
-    const url = `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME}.s3.ap-southeast-1.amazonaws.com/${file_key}`;
+    // https://chatpdf-helix.s3.ap-south-1.amazonaws.com/uploads/1708543562858_ipc.pdf
+    const url = `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME}.s3.ap-south-1.amazonaws.com/${file_key}`;
     return url;
-  }
+}

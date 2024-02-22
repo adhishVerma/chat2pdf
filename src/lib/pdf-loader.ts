@@ -1,10 +1,15 @@
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";;
-import { env } from "./config";
+import { downloadFroms3 } from "./s3-server";
 
-export async function getChunkedDocsFromPDF() {
+export async function getChunkedDocsFromPDF(file_key : string) {
     try{
-        const loader = new PDFLoader(env.PDF_PATH);
+        // download the pdf from the source and chunk it
+        const file_name = await downloadFroms3(file_key);
+        if(!file_name){
+            throw new Error("couldn't get teh file from s3");
+        }
+        const loader = new PDFLoader(file_name);
         const docs = await loader.load();
 
         const textSplitter = new RecursiveCharacterTextSplitter({

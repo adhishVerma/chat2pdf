@@ -42,5 +42,5 @@ export const getSources = (data : any[], role: string, index: number) => {
 }
 
 export const initialMessages: Message[] = [
-  { role: 'assistant', content: "Hey I am you AI assistant, I can answer questions about your PDF on ipc(indian penal code)", id: "0" },
+  { role: 'assistant', content: "Hey I am you AI assistant, I can answer questions about your PDF", id: "0" },
 ]

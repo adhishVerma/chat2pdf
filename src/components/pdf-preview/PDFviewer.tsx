@@ -1,17 +1,22 @@
 "use client"
 
+import { getS3Url } from '@/lib/s3'
 import React from 'react'
 
-const PDFviewer = () => {
-    const pdfUrl = 'https://lddashboard.legislative.gov.in/sites/default/files/A1860-45.pdf'
+type PDFviewerPropType = {
+    file_key: string
+}
 
-    if(pdfUrl){
+const PDFviewer = ({ file_key }: PDFviewerPropType) => {
+    const pdfUrl = getS3Url(file_key)
+
+    if (pdfUrl) {
         return (
             <iframe src={pdfUrl} height="100%" width="100%" ></iframe>
         )
     }
-    
-    
+
+
 }
 
 export default PDFviewer

@@ -14,8 +14,8 @@ export const useAStore = create<Store>()(
         'pdfUrl': [],
         'setPdf': (url) => set(() => ({ pdfUrl: url })),
         'chatID': null,
-        'setChatID': (chatId) => (() => ({ chatID: chatId })),
+        'setChatID': (chatId) => set(() => ({ chatID: chatId })),
         'pdfKey' : null,
-        'setPdfKey' : (file_key) => ({pdfKey: file_key}),
+        'setPdfKey' : (file_key) => set(() => ({pdfKey: file_key})),
     })
 )
