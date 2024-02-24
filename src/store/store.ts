@@ -3,8 +3,8 @@ import { create } from 'zustand'
 export interface Store {
     'pdfUrl': Object[] | [];
     'setPdf': (url: any[]) => void;
-    'chatID': string | null;
-    'setChatID': (chatId: string) => void;
+    'chatId': string | null;
+    'setChatId': (chatId: string) => void;
     'pdfKey' : string | null;
     'setPdfKey': (pdfKey: string) => void;
 }
@@ -13,9 +13,9 @@ export const useAStore = create<Store>()(
     (set) => ({
         'pdfUrl': [],
         'setPdf': (url) => set(() => ({ pdfUrl: url })),
-        'chatID': null,
-        'setChatID': (chatId) => set(() => ({ chatID: chatId })),
+        'chatId': null,
+        'setChatId': (chatId) => set(() => ({ chatId: chatId })),
         'pdfKey' : null,
-        'setPdfKey' : (file_key) => set(() => ({pdfKey: file_key})),
+        'setPdfKey' : (file_key) => set(() => ({pdfKey: file_key}))
     })
 )
