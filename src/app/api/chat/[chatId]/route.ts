@@ -2,10 +2,10 @@ import { db } from "@/lib/db";
 import { chats, messages } from "@/lib/db/schema";
 import { auth } from "@clerk/nextjs";
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
-import { NextRequest } from "next/server";
 
-export async function GET(req: NextRequest, context: { params: any }) {
+export const runtime = "edge";
+
+export async function GET(req: Request, context: { params: any }) {
     try {
         const { userId } = auth()
         let chat;
@@ -15,8 +15,8 @@ export async function GET(req: NextRequest, context: { params: any }) {
             chat = chatQuery[0]
         }
         if (chat?.userId != userId) {
-            return Response.json({"status" : "redirection needed"}, {
-                status : 301
+            return Response.json({"status" : "Unauthorized"}, {
+                status : 401
             })
         }
         const _messages = await db.select().from(messages).where(eq(messages.chatId, chatId));

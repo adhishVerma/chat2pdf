@@ -5,6 +5,7 @@ import { chats } from "@/lib/db/schema";
 import { getS3Url } from "@/lib/s3";
 import { preparePDF } from "@/scripts/pinecone-embed-docs";
 import { auth } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 
 type PromiseBody = {
     file_key: string,
@@ -12,9 +13,9 @@ type PromiseBody = {
 }
 
 export async function POST(req: Request) {
-    const { userId } = await auth();
+    const { userId } = auth();
     if (!userId) {
-        return Response.json({ message: "Unauthorized" }, {
+        return NextResponse.json({ message: "Unauthorized" }, {
             status: 401
         })
     }
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
         }
     } catch (err) {
         console.log(err);
-        return Response.json({ message: "internal server error" }, {
+        return NextResponse.json({ message: "internal server error" }, {
             status: 500
         })
     }

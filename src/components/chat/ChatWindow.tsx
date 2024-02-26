@@ -68,9 +68,8 @@ const ChatWindow = (props: Props) => {
         return navigate('/chat');
       }
     })
-    // setPdfKey(props.chatId);
 
-  }, [useMutation])
+  }, [setPdfKey, mutate, chatId])
   
 
   if(loading){
