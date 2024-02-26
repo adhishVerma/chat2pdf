@@ -33,7 +33,7 @@ const PDFUpload = () => {
             const res = await uploadToS3(file);
             // after uploading the file to s3
             if (!res.file_key || !res.file_name) {
-                alert("something went wrong");
+                toast("something went wrong");
                 return;
             }
             mutate(res, {
@@ -53,19 +53,19 @@ const PDFUpload = () => {
 
     return (
         <div className='p-2 rounded-xl w-full max-w-sm'>
-            {isPending ? <div className='w-full h-full text-2xl font-medium text-secondary-foreground flex items-center justify-center gap-4'>
-                <Loader2 className='animate-spin' />
-                <h3>Processing your PDF...</h3>
-            </div> : <div {...getRootProps({
-                className: 'border-dashed border-2 rounded-xl cursor-pointer bg-gray-50 dark:bg-slate-600 py-8 flex justify-center items-center flex-col'
+            <div {...getRootProps({
+                className: 'border-dashed border-2 border-red-200 dark:border-green-200 rounded-xl cursor-pointer bg-gray-50 dark:bg-neutral-800 py-8 flex justify-center items-center flex-col'
             })} >
                 <input {...getInputProps()} />
-                <>
-                    <Inbox className='w-10 h-10 text-blue-500' />
-                    <p className='mt-2 text-sm text-slate-400'>Drop PDF here</p>
-                </>
+                {!isPending ? <>
+                    <Inbox className='w-10 h-10' />
+                    <p className='mt-2 text-sm'>Drop your PDF here</p>
+                </> : <div className='w-full -h-full flex justify-center items-center gap-3 animate-pulse'>
+                    <Loader2 className='h-6 w-6 animate-spin' />
+                    <h3 className='text-xl'>Processing..</h3>
+                </div>}
             </div>
-            }
+
         </div>
     )
 }

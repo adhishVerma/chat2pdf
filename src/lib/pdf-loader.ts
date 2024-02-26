@@ -7,14 +7,14 @@ export async function getChunkedDocsFromPDF(file_key : string) {
         // download the pdf from the source and chunk it
         const file_name = await downloadFroms3(file_key);
         if(!file_name){
-            throw new Error("couldn't get teh file from s3");
+            throw new Error("couldn't get the file from s3");
         }
         const loader = new PDFLoader(file_name);
         const docs = await loader.load();
 
         const textSplitter = new RecursiveCharacterTextSplitter({
-            chunkSize : 1000,
-            chunkOverlap : 200,
+            chunkSize : 512,
+            chunkOverlap : 124,
         });
         
         const chunkedDocs = await textSplitter.splitDocuments(docs);

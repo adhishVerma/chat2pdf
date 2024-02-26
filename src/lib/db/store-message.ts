@@ -16,5 +16,4 @@ export async function storeMessage(message: Message, chatId: string) {
             role: role ? role : '',
         })
     }
-
 }
