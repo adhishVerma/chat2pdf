@@ -8,15 +8,16 @@ import { STANDALONE_QUESTION_TEMPLATE, QA_TEMPLATE } from "./prompt-templates";
 type callChainArgs = {
     question: string;
     chatHistory: string;
+    namespace: string;
 }
 
-export async function callChain({ question, chatHistory }: callChainArgs) {
+export async function callChain({ question, chatHistory, namespace }: callChainArgs) {
     try {
         const sanitizedQuestion = question.trim().replaceAll("\n", " ");
         const pineconeClient = await getPineconeClient();
-        const vectorStore = await getVectorStore(pineconeClient);
+        const vectorStore = await getVectorStore(pineconeClient, namespace);
         const { stream, handlers } = LangChainStream({
-            experimental_streamData : true,
+            experimental_streamData: true,
         });
         const data = new experimental_StreamData();
 
@@ -38,15 +39,15 @@ export async function callChain({ question, chatHistory }: callChainArgs) {
             chat_history: chatHistory, handlers
         }, { callbacks: [handlers] }).then(async (res) => {
             const sourceDocuments = res?.sourceDocuments;
-            const firstTwoDocuments = sourceDocuments.slice(0,2);
-            const pageContents = firstTwoDocuments.map(({pageContent}: {pageContent:string}) => pageContent);
+            const firstTwoDocuments = sourceDocuments.slice(0, 2);
+            const pageContents = firstTwoDocuments.map(({ pageContent }: { pageContent: string }) => pageContent);
             data.append({
-                sources : pageContents
+                sources: pageContents
             });
             data.close();
         })
 
-        return new StreamingTextResponse(stream, {} , data);
+        return new StreamingTextResponse(stream, {}, data);
 
     } catch (err) {
         console.error("error", err);

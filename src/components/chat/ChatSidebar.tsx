@@ -1,32 +1,32 @@
-"use client"
-
 import React from 'react'
 import ChatItem from './ChatItem'
-import { navigate } from '@/app/chat/actions'
-import { useAStore } from '@/store/store'
+import { auth } from '@clerk/nextjs'
+import { redirect } from 'next/navigation'
+import { db } from '@/lib/db'
+import { chats } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { Button } from '../ui/button'
+import Link from 'next/link'
 
+type Props = {
+  chatId: string
+}
 
-
-const chats = ['chat1', 'chat2', 'chat3', 'chat4', 'chat5']
-
-
-const ChatSidebar = () => {
-  const chatId = useAStore((state) => state.chatId);
-  const setChatId = useAStore((state) => state.setChatId);
-
-  const onClickItem = (event: any) => {
-    // itemId inside dataset
-    navigate(`/chat/${event.target.dataset.itemId}`);
-    setChatId(event.target.dataset.itemId)
+const ChatSidebar = async (props: Props) => {
+  const { userId } = auth();
+  if (!userId) {
+    return redirect(`/login`);
   }
 
+  const _chats = await db.select().from(chats).where(eq(chats.userId, userId));
   return (
     <div className='h-full bg-primary-foreground p-2 rounded'>
-      <h2 className='opacity-75 font-semibold text-center mb-5'>Your previous chats</h2>
-      {chats.map((item, index) => {
-        const selected = item === chatId;
-        return (<ChatItem key={index} name={item} selected={selected} clickHandler={onClickItem} />)
+      <Link href={`/chat`}>
+        <Button className='w-full bg-inherit my-2' variant="outline">Create new chat</Button></Link>
+      {_chats.map((item, index) => {
+        return (<ChatItem key={index} item={item} chatId={props.chatId} />)
       })}
+      <h2 className='opacity-75 font-light text-sm text-center mb-5 text-opacity-50 mt-12'>Your previous chats</h2>
     </div>
   )
 }

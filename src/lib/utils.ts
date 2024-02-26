@@ -41,6 +41,12 @@ export const getSources = (data : any[], role: string, index: number) => {
   return [];
 }
 
-export const initialMessages: Message[] = [
+export const initialMessagesTemplate: Message[] = [
   { role: 'assistant', content: "Hey I am you AI assistant, I can answer questions about your PDF", id: "0" },
 ]
+
+export function convertToAscii(inputString: string) {
+  // remove non ascii characters
+  const asciiString = inputString.replace(/[^\x00-\x7F]+/g, "");
+  return asciiString;
+}

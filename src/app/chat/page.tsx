@@ -13,7 +13,7 @@ const page = async (props: Props) => {
         <div className='w-full rounded-sm max-w-7xl mx-auto h-full'>
             <ResizablePanelGroup direction='horizontal' className='w-full h-full py-2'>
                 <ResizablePanel defaultSize={25}>
-                    <ChatSidebar />
+                    <ChatSidebar chatId={``}/>
                 </ResizablePanel>
                 <ResizablePanel defaultSize={75} className='flex justify-center items-center border'>
                     <PDFUpload />

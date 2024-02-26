@@ -1,14 +1,13 @@
 "use client"
 
 import { getS3Url } from '@/lib/s3'
+import { useAStore } from '@/store/store'
 import React from 'react'
 
-type PDFviewerPropType = {
-    file_key: string
-}
 
-const PDFviewer = ({ file_key }: PDFviewerPropType) => {
-    const pdfUrl = getS3Url(file_key)
+const PDFviewer = () => {
+    const pdfKey = useAStore((state) => state.pdfKey)
+    const pdfUrl = getS3Url(pdfKey!)
 
     if (pdfUrl) {
         return (

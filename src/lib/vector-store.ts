@@ -2,11 +2,13 @@ import { env } from "./config";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { PineconeStore } from "@langchain/pinecone";
 import { Pinecone } from "@pinecone-database/pinecone";
+import { convertToAscii } from "./utils";
 
 export async function embedAndStoreDocs(
     client: Pinecone,
     // @ts-ignore docs type error
-    docs: Document<Record<string, any>>[]
+    docs: Document<Record<string, any>>[],
+    namespace : string
 ) {
     try {
         const embeddings = new OpenAIEmbeddings();
@@ -15,7 +17,7 @@ export async function embedAndStoreDocs(
         // embed the pdf documents
         await PineconeStore.fromDocuments(docs, embeddings, {
             pineconeIndex: index,
-            namespace: env.PINECONE_NAME_SPACE,
+            namespace: convertToAscii(namespace),
             textKey: "text"
         })
     } catch (err) {
@@ -24,7 +26,7 @@ export async function embedAndStoreDocs(
     }
 }
 
-export async function getVectorStore(client:Pinecone) {
+export async function getVectorStore(client:Pinecone, namespace : string) {
     try{
         const embeddings = new OpenAIEmbeddings(); //LLM
         const index = client.Index(env.PINECONE_INDEX_NAME);
@@ -32,13 +34,13 @@ export async function getVectorStore(client:Pinecone) {
         const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
             pineconeIndex : index,
             textKey : "text",
-            namespace : env.PINECONE_NAME_SPACE,
+            namespace : convertToAscii(namespace),
         });
 
         return vectorStore
     }catch(err){
         console.error("error", err);
-        throw new Error("Something went wrong while getting vecotr store");
+        throw new Error("Something went wrong while getting vector store");
     }
     
 }

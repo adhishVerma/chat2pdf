@@ -9,7 +9,7 @@ export const preparePDF = async (file_key : string) => {
         console.log("preparing chunks from PDF file");
         const docs = await getChunkedDocsFromPDF(file_key);
         console.log(`loading ${docs.length} chunks into pinecone..`);
-        await embedAndStoreDocs(pineconeClient, docs);
+        await embedAndStoreDocs(pineconeClient, docs, file_key);
         console.log("data embedded and stored in pine-cone index");
     }catch(err){
         console.error("error", err);

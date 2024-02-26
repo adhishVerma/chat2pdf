@@ -1,18 +1,19 @@
 "use client"
 
 import { useAStore } from '@/store/store';
-import { Inbox } from 'lucide-react';
+import { Inbox, Loader2 } from 'lucide-react';
 import React from 'react'
 import { useDropzone } from 'react-dropzone';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from "sonner"
 import { uploadToS3 } from '@/lib/s3';
 import axios from 'axios'
+import { useRouter } from 'next/navigation';
 
 const PDFUpload = () => {
 
     const setPdfKey = useAStore((state) => state.setPdfKey);
-
+    const router = useRouter();
     const { mutate, isPending } = useMutation({
         mutationFn: async ({ file_key, file_name }: { file_key: string, file_name: string }) => {
             const response = await axios.post(`/api/create-chat`, {
@@ -38,9 +39,8 @@ const PDFUpload = () => {
             mutate(res, {
                 onSuccess: (data) => {
                     console.log(data);
-                    // 
-
                     toast("Pdf ready to interact with");
+                    router.push(`/chat/${data.chat_id}`);
                     setPdfKey(res.file_key);
                 },
                 onError: (err) => {
@@ -53,7 +53,10 @@ const PDFUpload = () => {
 
     return (
         <div className='p-2 rounded-xl w-full max-w-sm'>
-            <div {...getRootProps({
+            {isPending ? <div className='w-full h-full text-2xl font-medium text-secondary-foreground flex items-center justify-center gap-4'>
+                <Loader2 className='animate-spin' />
+                <h3>Processing your PDF...</h3>
+            </div> : <div {...getRootProps({
                 className: 'border-dashed border-2 rounded-xl cursor-pointer bg-gray-50 dark:bg-slate-600 py-8 flex justify-center items-center flex-col'
             })} >
                 <input {...getInputProps()} />
@@ -62,6 +65,7 @@ const PDFUpload = () => {
                     <p className='mt-2 text-sm text-slate-400'>Drop PDF here</p>
                 </>
             </div>
+            }
         </div>
     )
 }
