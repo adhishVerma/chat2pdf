@@ -11,7 +11,7 @@ const PDFviewer = () => {
 
     if (pdfUrl) {
         return (
-            <iframe src={pdfUrl} height="100%" width="100%" allowTransparency loading='eager'></iframe>
+            <iframe src={pdfUrl} height="100%" width="100%" ></iframe>
         )
     }
 

@@ -3,7 +3,6 @@
 import React from 'react'
 import { Button } from '../ui/button'
 import { navigate } from '@/app/chat/actions'
-import { useAStore } from '@/store/store'
 
 type Props = {
     item: {
@@ -15,11 +14,9 @@ type Props = {
 
 const ChatItem = (props: Props) => {
     const {item, chatId} = props
-    const setPdfKey = useAStore(state => state.setPdfKey)
 
     const onClickItem = (event: any) => {
         // itemId inside dataset
-        setPdfKey('')
         navigate(`/chat/${event.target.dataset.itemId}`);
     }
 
