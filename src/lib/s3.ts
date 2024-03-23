@@ -1,4 +1,4 @@
-import { PutObjectCommandInput, PutObjectCommandOutput, S3 } from '@aws-sdk/client-s3';
+import { PutObjectCommandInput, PutObjectCommandOutput, DeleteObjectCommandInput, DeleteObjectCommandOutput, S3 } from '@aws-sdk/client-s3';
 
 export async function uploadToS3(file: File): Promise<{ file_key: string; file_name: string }> {
 
@@ -40,4 +40,25 @@ export function getS3Url(file_key: string) {
     // https://chatpdf-helix.s3.ap-south-1.amazonaws.com/uploads/1708543562858_ipc.pdf
     const url = file_key && file_key.length ? `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME}.s3.ap-south-1.amazonaws.com/${file_key}` : '';
     return url;
+}
+
+export async function deleteFromS3(file_key: string) {
+
+    const s3 = new S3({
+        region: 'ap-south-1',
+        credentials: {
+            accessKeyId: process.env.NEXT_PUBLIC_S3_ACCESS_KEY_ID!,
+            secretAccessKey: process.env.NEXT_PUBLIC_S3_SECRET_ACCESS_KEY!
+        }
+    })
+
+    const params: DeleteObjectCommandInput = {
+        Bucket: process.env.NEXT_PUBLIC_S3_BUCKET_NAME,
+        Key: file_key,
+    }
+    try {
+        s3.deleteObject(params);
+    } catch (err: any) {
+        console.log(err.response);
+    }
 }

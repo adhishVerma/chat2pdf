@@ -30,7 +30,7 @@ const PDFUpload = () => {
         accept: { 'application/pdf': [".pdf"] },
         maxFiles: 1,
         onDrop: async (acceptedFiles) => {
-            console.log(acceptedFiles);
+            
             const file = acceptedFiles[0];
             if(!nameChecker(file.name)){
                 toast("Please rename your file")
@@ -44,7 +44,6 @@ const PDFUpload = () => {
             }
             mutate(res, {
                 onSuccess: (data) => {
-                    console.log(data);
                     toast("Have a cup of coffee, while we process your document");
                     router.push(`/chat/${data.chat_id}`);
                     setPdfKey(res.file_key);
