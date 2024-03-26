@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 export const userEnum = pgEnum('userEnum', ['assistant', 'user'])
 
@@ -8,7 +8,8 @@ export const chats = pgTable('chats', {
     pdfUrl: text('pdf_url').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     userId: varchar('userId', { length: 256 }).notNull(),
-    file_key: text('file_key').notNull()
+    file_key: text('file_key').notNull(),
+    processed : boolean('processed').notNull().default(false)
 })
 
 export const messages = pgTable('messages', {

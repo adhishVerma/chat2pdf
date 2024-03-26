@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { uploadToS3 } from '@/lib/s3';
 import axios from 'axios'
 import { useRouter } from 'next/navigation';
+import { nameChecker } from '@/lib/utils';
 
 const PDFUpload = () => {
 
@@ -21,25 +22,29 @@ const PDFUpload = () => {
                 file_name
             })
             return response.data;
-        }
+        },
+
     })
 
     const { getRootProps, getInputProps } = useDropzone({
         accept: { 'application/pdf': [".pdf"] },
         maxFiles: 1,
         onDrop: async (acceptedFiles) => {
-            console.log(acceptedFiles);
+            
             const file = acceptedFiles[0];
+            if(!nameChecker(file.name)){
+                toast("Please rename your file")
+                return
+            }
             const res = await uploadToS3(file);
             // after uploading the file to s3
             if (!res.file_key || !res.file_name) {
-                toast("something went wrong");
+                toast("something went wrong while uploading the file");
                 return;
             }
             mutate(res, {
                 onSuccess: (data) => {
-                    console.log(data);
-                    toast("Pdf ready to interact with");
+                    toast("Have a cup of coffee, while we process your document");
                     router.push(`/chat/${data.chat_id}`);
                     setPdfKey(res.file_key);
                 },

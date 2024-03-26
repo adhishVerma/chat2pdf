@@ -26,7 +26,7 @@ async function createIndex(client: Pinecone, indexName: string) {
 }
 
 async function initPineconeClient() {
-    // TODO: in case indes isn't ready we will have to find a workaround
+    // TODO: in case index isn't ready we will have to find a workaround
     try {
         const pineconeClient = new Pinecone({
             apiKey: env.PINECONE_API_KEY
@@ -34,9 +34,9 @@ async function initPineconeClient() {
         const indexName = env.PINECONE_INDEX_NAME;
         const useIndex = await pineConeIndexUp(pineconeClient, indexName)
 
-        if(!useIndex){
+        if (!useIndex) {
             createIndex(pineconeClient, indexName);
-        }else{
+        } else {
             console.log("index already exists and is ready");
         }
         return pineconeClient;
@@ -47,17 +47,17 @@ async function initPineconeClient() {
 }
 
 export async function getPineconeClient() {
-    if(!pineconeClientInstance){
+    if (!pineconeClientInstance) {
         pineconeClientInstance = await initPineconeClient();
     }
     return pineconeClientInstance;
 }
 
-async function pineConeIndexUp(pineconeClient:Pinecone,index:string){
-    try{
+async function pineConeIndexUp(pineconeClient: Pinecone, index: string) {
+    try {
         const indexReady = (await pineconeClient.describeIndex(index)).status.ready === true
         return indexReady
-    }catch(err){
+    } catch (err) {
         // if there is an error then the index wasn't found
         console.log(err);
         return false
