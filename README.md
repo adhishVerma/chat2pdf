@@ -95,6 +95,8 @@ Keep the bucket private. Give the app an IAM user or role with only `s3:PutObjec
 
 New accounts get a confirmation link and must confirm before uploading (`REQUIRE_EMAIL_VERIFICATION=false` turns this off). "Forgot password?" on the sign-in page emails a one-hour reset link, and resetting signs the user out of every other session.
 
+The **Account** page (`/account`, linked from the email in the header) shows the user's details and lets them change their password, which signs out their other sessions, or delete their account. Deleting removes their PDFs from S3 and all their chats, messages and chunks. Both actions need the current password.
+
 1. In SES (same region as `SES_REGION`), verify your sending domain or address.
 2. New SES accounts are in the sandbox and can only send to verified addresses. Request production access before launch.
 3. Set `EMAIL_FROM` (for example `ChatPdf <no-reply@your-domain.com>`) and `APP_URL`. Give the app `ses:SendEmail`, through the instance role or `SES_ACCESS_KEY_ID`/`SES_SECRET_ACCESS_KEY`.
