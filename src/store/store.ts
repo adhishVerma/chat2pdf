@@ -1,21 +1,19 @@
 import { create } from 'zustand'
 
 export interface Store {
-    'pdfUrl': Object[] | [];
-    'setPdf': (url: any[]) => void;
-    'chatId': string;
-    'setChatId': (chatId: string) => void;
-    'pdfKey' : string | null;
+    'pdfKey': string | null;
     'setPdfKey': (pdfKey: string) => void;
+    // page the PDF viewer should show; `nonce` changes on every jump so
+    // jumping to the same page twice still scrolls back to it
+    'pdfPage': { page: number; nonce: number } | null;
+    'goToPage': (page: number) => void;
 }
 
 export const useAStore = create<Store>()(
     (set) => ({
-        'pdfUrl': [],
-        'setPdf': (url) => set(() => ({ pdfUrl: url })),
-        'chatId': '-99',
-        'setChatId': (chatId) => set(() => ({ chatId: chatId })),
-        'pdfKey' : null,
-        'setPdfKey' : (file_key) => set(() => ({pdfKey: file_key}))
+        'pdfKey': null,
+        'setPdfKey': (file_key) => set(() => ({ pdfKey: file_key, pdfPage: null })),
+        'pdfPage': null,
+        'goToPage': (page) => set(() => ({ pdfPage: { page, nonce: Date.now() } })),
     })
 )
