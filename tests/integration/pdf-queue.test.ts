@@ -7,6 +7,7 @@ const processPdf = vi.fn();
 vi.mock("@/lib/process-pdf", () => ({ processPdf: (...args: unknown[]) => processPdf(...args) }));
 
 const { claimJob, runJob, retryChat, MAX_ATTEMPTS } = await import("@/lib/jobs/pdf-queue");
+const { PermanentJobError } = await import("@/lib/jobs/errors");
 
 async function chatRow(id: number) {
     const { rows } = await getPool().query("SELECT status, attempts, error, next_attempt_at > now() AS delayed FROM chats WHERE id = $1", [id]);
@@ -55,6 +56,14 @@ describe.skipIf(!hasDatabase)("PDF processing queue", () => {
         await retryChat(chatId);
         expect(await chatRow(chatId)).toMatchObject({ status: "pending", attempts: 0, error: null });
         expect((await claimJob())?.id).toBe(chatId);
+    });
+
+    it("fails at once, without retrying, when the error is permanent", async () => {
+        processPdf.mockRejectedValue(new PermanentJobError("No text found in this PDF."));
+        const chatId = await createChat((await createUser()).id);
+        await runJob((await claimJob())!);
+        expect(await chatRow(chatId)).toMatchObject({ status: "failed", attempts: 1, error: "No text found in this PDF." });
+        expect(processPdf).toHaveBeenCalledTimes(1);
     });
 
     it("picks up jobs stuck in processing", async () => {

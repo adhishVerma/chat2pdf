@@ -83,6 +83,24 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect(details.processing).toMatchObject({ status: "ready", attempts: 1 });
     });
 
+    it("fails a file that isn't a real PDF at once, without retrying", async () => {
+        const bytes = Buffer.from("this is not a pdf");
+        const res = await owner.post("/api/upload-url", { file_name: "fake.pdf", file_type: "application/pdf", file_size: bytes.length });
+        const { upload_url, file_key } = await res.json();
+        await fetch(upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: bytes });
+        const created = await owner.post("/api/create-chat", { file_key, file_name: "fake.pdf" });
+        const badId = (await created.json()).chat_id;
+
+        const details = await waitFor(
+            async () => (await owner.get(`/api/chat/${badId}`)).json(),
+            (d) => d.processing?.status === "failed",
+            20_000,
+        );
+        expect(details.processing.attempts).toBe(1);
+        expect(details.processing.error).toContain("couldn't be read as a PDF");
+        await owner.req("DELETE", `/api/chat/${badId}`);
+    });
+
     it("answers with sources and page numbers, and saves the conversation", async () => {
         const res = await owner.post("/api/chat", { chatId, question: "What is criminal conspiracy?" });
         expect(res.status).toBe(200);
