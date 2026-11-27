@@ -72,6 +72,8 @@ On any Docker host: `docker build -t chat2pdf .`, then run `docker compose -f de
 
 Processing runs in a worker inside the app server, so host it on a long-running server (EC2/ECS), not a serverless platform. Jobs are claimed with `FOR UPDATE SKIP LOCKED`, so several app instances can share the queue, and a job stuck in `processing` for 10 minutes (for example after a crash) is picked up again. To process on separate machines, set `DISABLE_WORKER=true` on the web servers and run `npm run worker` elsewhere.
 
+`GET /api/health` returns 200 with `{ "status": "ok", "db": "ok", "worker": "running" }` when the app can reach Postgres, and 503 when it can't. The Docker healthcheck, CI and the deploy smoke test use it; point your load balancer or uptime monitor at it too.
+
 The worker also runs a cleanup job every hour (`src/lib/jobs/cleanup.ts`). It deletes uploads older than 24 hours that never became a chat, expired or used email tokens, and old rate limit counters. An advisory lock keeps it to one instance at a time.
 
 ### S3 bucket
