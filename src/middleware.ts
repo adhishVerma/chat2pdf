@@ -1,11 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { applySecurityHeaders } from "@/lib/security-headers";
 
 // Pages and API routes reachable while signed out
 const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up", "/verify-email", "/forgot-password", "/reset-password"];
 const PUBLIC_PREFIXES = ["/api/auth/"];
 
 export async function middleware(req: NextRequest) {
+    const res = await route(req);
+    applySecurityHeaders(res.headers);
+    return res;
+}
+
+async function route(req: NextRequest) {
     const { pathname } = req.nextUrl;
     if (PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
         return NextResponse.next();
