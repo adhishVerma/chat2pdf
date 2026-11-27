@@ -1,57 +1,79 @@
-import { callChain } from "@/lib/langchain";
-import { Message } from "ai";
-import { storeMessage } from "@/lib/db/store-message";
+import { eq } from "drizzle-orm";
+import z from "zod";
+import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
-import { getSession } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { storeMessage } from "@/lib/db/store-message";
+import { answerQuestion } from "@/lib/rag";
 
-const formatMessage = (message: Message) => {
-    return `${message.role === 'user' ? "Human" : "Assistant"}: ${message.content}`
-}
+const bodySchema = z.object({
+    chatId: z.coerce.number().int().positive(),
+    messages: z.array(z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(20000),
+    })).min(1).max(200),
+});
 
+// Response body: one line of JSON with the sources used, then the answer text
+// streamed as it is generated.
 export async function POST(req: Request) {
     const session = await getSession();
     if (!session) {
-        return Response.json("Unauthorized", { status: 401 })
+        return new Response("Unauthorized", { status: 401 });
     }
-    const body = await req.json();
-    const chatId = body.chatId;
+    const parsed = bodySchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+        return new Response("Invalid request", { status: 400 });
+    }
+    const { chatId, messages } = parsed.data;
+    const question = messages[messages.length - 1];
+    if (question.role !== "user" || !question.content.trim()) {
+        return new Response("Error: No question in the request", { status: 400 });
+    }
+
     // the chat must belong to the signed-in user
-    const chatQuery = await db.select().from(chats).where(eq(chats.id, parseInt(chatId)));
-    if (!chatQuery.length || chatQuery[0].userId !== session.userId) {
-        return Response.json("Unauthorized", { status: 401 })
+    const [chat] = await db.select().from(chats).where(eq(chats.id, chatId));
+    if (!chat || chat.userId !== session.userId) {
+        return new Response("Unauthorized", { status: 401 });
     }
-    if (!chatQuery[0].processed) {
-        return new Response("Your PDF is still being processed. Try again in a moment.", { status: 409 })
+    if (!chat.processed) {
+        return new Response("Your PDF is still being processed. Try again in a moment.", { status: 409 });
     }
-    const messages: Message[] = body.messages ?? [];
-    const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
-    const question = messages[messages.length - 1]?.content;
 
-    if (!question) {
-        return Response.json("Error: No question in the request", {
-            status: 500,
-        })
-    }
     try {
-        // save the message to db
-        const userMessage = messages[messages.length - 1]
-        await storeMessage(userMessage, chatId)
+        await storeMessage({ content: question.content, role: "user" }, chatId);
+        const { sources, stream } = await answerQuestion(chatId, messages.slice(0, -1), question.content);
 
-        const streamingTextResponse = callChain({
-            question,
-            chatHistory: formattedPreviousMessages.join("\n"),
-            chatId: chatQuery[0].id,
-            // save the assistant's reply server-side once the stream finishes
-            onFinal: (completion) => storeMessage({ content: completion, role: "assistant" }, chatId),
+        const encoder = new TextEncoder();
+        let answer = "";
+        const body = new ReadableStream<Uint8Array>({
+            async start(controller) {
+                controller.enqueue(encoder.encode(JSON.stringify(
+                    sources.map((s) => ({ content: s.content, page: s.page })),
+                ) + "\n"));
+                try {
+                    for await (const delta of stream) {
+                        answer += delta;
+                        controller.enqueue(encoder.encode(delta));
+                    }
+                    controller.close();
+                } catch (err) {
+                    console.error("Streaming failed", err);
+                    controller.error(err);
+                } finally {
+                    if (answer) await storeMessage({ content: answer, role: "assistant" }, chatId);
+                }
+            },
         });
 
-        return streamingTextResponse;
+        return new Response(body, {
+            headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "no-store",
+            },
+        });
     } catch (err) {
         console.error("Internal Server error", err);
-        return Response.json("Error: Something went wrong. Try again!!", {
-            status: 500,
-        })
+        return new Response("Error: Something went wrong. Try again!!", { status: 500 });
     }
 }

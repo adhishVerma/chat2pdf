@@ -4,17 +4,20 @@ import { chats, messages } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 
-export async function GET(req: Request, context: { params: any }) {
+export async function GET(req: Request, context: { params: Promise<{ chatId: string }> }) {
     try {
         const session = await getSession()
         const userId = session?.userId
         let chat;
-        const { chatId } = context.params
+        const chatId = parseInt((await context.params).chatId)
+        if (Number.isNaN(chatId)) {
+            return Response.json({ "status": "failed" }, { status: 400 })
+        }
         const chatQuery = await db.select().from(chats).where(eq(chats.id, chatId));
         if (chatQuery.length) {
             chat = chatQuery[0]
         }
-        if (chat?.userId != userId) {
+        if (!userId || !chat || chat.userId !== userId) {
             return Response.json({ "status": "Unauthorized" }, {
                 status: 401
             })
@@ -31,12 +34,12 @@ export async function GET(req: Request, context: { params: any }) {
     }
 }
 
-export async function DELETE(req: Request, { params }: { params: { chatId: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ chatId: string }> }) {
     const session = await getSession();
     if (!session) {
         return Response.json({ "status": "Unauthorized" }, { status: 401 })
     }
-    const chatId = parseInt(params.chatId);
+    const chatId = parseInt((await params).chatId);
     if (Number.isNaN(chatId)) {
         return Response.json({ "status": "failed" }, { status: 400 })
     }
