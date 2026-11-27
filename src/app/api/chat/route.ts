@@ -3,28 +3,28 @@ import { Message } from "ai";
 import { storeMessage } from "@/lib/db/store-message";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
-import { auth } from "@clerk/nextjs";
+import { getSession } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 
 const formatMessage = (message: Message) => {
     return `${message.role === 'user' ? "Human" : "Assistant"}: ${message.content}`
 }
 
-export const runtime = "edge";
-
 export async function POST(req: Request) {
-    const { userId } = auth();
-    if (!userId) {
+    const session = await getSession();
+    if (!session) {
         return Response.json("Unauthorized", { status: 401 })
     }
     const body = await req.json();
     const chatId = body.chatId;
-    // the chat must belong to the signed-in user; use its stored file_key
+    // the chat must belong to the signed-in user
     const chatQuery = await db.select().from(chats).where(eq(chats.id, parseInt(chatId)));
-    if (!chatQuery.length || chatQuery[0].userId !== userId) {
+    if (!chatQuery.length || chatQuery[0].userId !== session.userId) {
         return Response.json("Unauthorized", { status: 401 })
     }
-    const file_key = chatQuery[0].file_key;
+    if (!chatQuery[0].processed) {
+        return new Response("Your PDF is still being processed. Try again in a moment.", { status: 409 })
+    }
     const messages: Message[] = body.messages ?? [];
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
     const question = messages[messages.length - 1]?.content;
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         const streamingTextResponse = callChain({
             question,
             chatHistory: formattedPreviousMessages.join("\n"),
-            namespace: file_key,
+            chatId: chatQuery[0].id,
             // save the assistant's reply server-side once the stream finishes
             onFinal: (completion) => storeMessage({ content: completion, role: "assistant" }, chatId),
         });

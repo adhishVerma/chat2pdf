@@ -43,6 +43,9 @@ const ChatWindow = (props: Props) => {
       file_key: pdfKey,
       chatId: chatId
     },
+    onError: (err) => {
+      toast(err.message || "Something went wrong");
+    },
   });
 
   const containerRef = useRef<HTMLDivElement | null>(null);

@@ -2,10 +2,8 @@
 
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
-import { getS3Url } from "@/lib/s3";
-import { lambdaPreparePDF } from "@/lib/utils";
-import { preparePDF } from "@/scripts/pinecone-embed-docs";
-import { auth } from "@clerk/nextjs";
+import { getSession } from "@/lib/auth";
+import { processPdf } from "@/lib/process-pdf";
 import { NextResponse } from "next/server";
 
 
@@ -16,8 +14,8 @@ type PromiseBody = {
 
 
 export async function POST(req: Request) {
-    const { userId } = auth();
-    if (!userId) {
+    const session = await getSession();
+    if (!session) {
         return NextResponse.json({ message: "Unauthorized" }, {
             status: 401
         })
@@ -32,20 +30,15 @@ export async function POST(req: Request) {
         const chat_id = await db.insert(chats).values({
             file_key: file_key,
             pdfName: file_name,
-            pdfUrl: getS3Url(file_key),
-            userId: userId
+            pdfUrl: `s3://${process.env.S3_BUCKET_NAME}/${file_key}`,
+            userId: session.userId
         }).returning({
             id: chats.id
         })
-        // 10 seconds elapsed and function timed out
-
-        // using aws lambda for processing as an alternative
-        lambdaPreparePDF(file_key).then((res) => {
-            console.log(res);
-        }).catch((err) => {
-            console.log(err);
-        })
-        // await preparePDF(file_key)
+        // process in the background on this server (no serverless timeout when self-hosted)
+        processPdf(chat_id[0].id, file_key)
+            .then((res) => console.log(`chat ${chat_id[0].id}: embedded ${res.chunks} chunks`))
+            .catch((err) => console.error(`chat ${chat_id[0].id}: processing failed`, err))
         return Response.json({
             message: "OK",
             chat_id: chat_id[0].id

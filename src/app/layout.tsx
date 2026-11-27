@@ -7,7 +7,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner"
 import QueryProvider from "@/components/QueryProvider";
-import { ClerkProvider } from '@clerk/nextjs'
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -33,7 +32,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
       <html lang="en">
         <QueryProvider>
           <body className={cn(
@@ -59,6 +57,5 @@ export default function RootLayout({
           </body>
         </QueryProvider >
       </html>
-    </ClerkProvider>
   );
 }

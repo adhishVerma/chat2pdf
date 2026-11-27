@@ -1,14 +1,12 @@
 // Server-only S3 helpers. Never import this file from a "use client" component:
 // it reads the AWS secret key, which must stay on the server.
 import "server-only";
-import { DeleteObjectCommand, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { S3_REGION, getS3Url } from "./s3-url";
-
-export { getS3Url };
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 const UPLOAD_URL_TTL_SECONDS = 60;
+const VIEW_URL_TTL_SECONDS = 15 * 60;
 
 function requireEnv(name: string): string {
     const value = process.env[name];
@@ -19,15 +17,17 @@ function requireEnv(name: string): string {
 }
 
 export function getBucketName() {
-    return requireEnv("NEXT_PUBLIC_S3_BUCKET_NAME");
+    return requireEnv("S3_BUCKET_NAME");
 }
 
 let client: S3 | null = null;
 
 export function getS3Client() {
     if (!client) {
+        const endpoint = process.env.S3_ENDPOINT; // optional, e.g. MinIO: http://localhost:9000
         client = new S3({
-            region: S3_REGION,
+            region: process.env.S3_REGION || "ap-south-1",
+            ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
             credentials: {
                 accessKeyId: requireEnv("S3_ACCESS_KEY_ID"),
                 secretAccessKey: requireEnv("S3_SECRET_ACCESS_KEY"),
@@ -52,6 +52,17 @@ export async function createUploadUrl(fileKey: string, contentLength: number) {
         ContentLength: contentLength,
     });
     return getSignedUrl(getS3Client(), command, { expiresIn: UPLOAD_URL_TTL_SECONDS });
+}
+
+// Short-lived URL for viewing a PDF; the bucket itself can stay private.
+export async function createViewUrl(fileKey: string) {
+    const command = new GetObjectCommand({
+        Bucket: getBucketName(),
+        Key: fileKey,
+        ResponseContentType: "application/pdf",
+        ResponseContentDisposition: "inline",
+    });
+    return getSignedUrl(getS3Client(), command, { expiresIn: VIEW_URL_TTL_SECONDS });
 }
 
 export async function deleteFromS3(fileKey: string) {

@@ -1,14 +1,12 @@
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";;
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { unlink } from "fs/promises";
 import { downloadFroms3 } from "./s3-server";
 
 export async function getChunkedDocsFromPDF(file_key: string) {
+    // download the pdf from S3 to a temp file and chunk it
+    const file_name = await downloadFroms3(file_key);
     try {
-        // download the pdf from the source and chunk it
-        const file_name = await downloadFroms3(file_key);
-        if (!file_name) {
-            throw new Error("couldn't get the file from s3");
-        }
         const loader = new PDFLoader(file_name);
         const docs = await loader.load();
 
@@ -17,14 +15,11 @@ export async function getChunkedDocsFromPDF(file_key: string) {
             chunkOverlap: 200,
         });
 
-        const chunkedDocs = await textSplitter.splitDocuments(docs);
-        return chunkedDocs;
-
+        return await textSplitter.splitDocuments(docs);
     } catch (err) {
         console.error("error", err);
         throw new Error("PDF docs chunking failed");
+    } finally {
+        await unlink(file_name).catch(() => undefined);
     }
 }
-
-
-

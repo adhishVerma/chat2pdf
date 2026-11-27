@@ -1,4 +1,6 @@
 import fs from "fs"
+import os from "os"
+import path from "path"
 import { getBucketName, getS3Client } from "./s3";
 
 export async function downloadFroms3(file_key: string): Promise<string> {
@@ -9,7 +11,7 @@ export async function downloadFroms3(file_key: string): Promise<string> {
                 Key: file_key,
             }
             const obj = await getS3Client().getObject(params);
-            const file_name = `/tmp/helix${Date.now().toString()}.pdf`;
+            const file_name = path.join(os.tmpdir(), `chat2pdf-${Date.now().toString()}-${Math.random().toString(36).slice(2)}.pdf`);
 
             if (obj.Body instanceof require('stream').Readable) {
                 const file = fs.createWriteStream(file_name);

@@ -1,7 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { Message } from 'ai'
 import { twMerge } from "tailwind-merge"
-import axios from "axios"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -50,11 +49,6 @@ export function convertToAscii(inputString: string) {
   // remove non ascii characters
   const asciiString = inputString.replace(/[^\x00-\x7F]+/g, "");
   return asciiString;
-}
-
-export async function lambdaPreparePDF(file_key: string) {
-  const response = await axios.get(`${process.env.LAMBDA_URL}/?file_key=${encodeURIComponent(file_key)}`)
-  return response
 }
 
 export function nameChecker(file_name:string){
