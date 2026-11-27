@@ -1,5 +1,4 @@
 import { type ClassValue, clsx } from "clsx"
-import { Message } from 'ai'
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -17,7 +16,7 @@ export function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function scrollToEnd(containerRef: React.RefObject<HTMLElement>) {
+export function scrollToEnd(containerRef: React.RefObject<HTMLElement | null>) {
   if (containerRef.current) {
     const lastMessage = containerRef.current.lastElementChild;
     if (lastMessage) {
@@ -30,26 +29,18 @@ export function scrollToEnd(containerRef: React.RefObject<HTMLElement>) {
   }
 }
 
-// maps the sources with the right ai-message
-export const getSources = (data: any[], role: string, index: number) => {
-  if (role === 'assistant' && index >= 2 && (index - 2) % 2 === 0) {
-    const sourcesIndex = (index - 2) / 2;
-    if (data[sourcesIndex] && data[sourcesIndex].sources) {
-      return data[sourcesIndex].sources;
-    }
-  }
-  return [];
+export type Source = { content: string; page: number }
+
+export type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: Source[];
 }
 
 export const initialMessagesTemplate: Message[] = [
   { role: 'assistant', content: "Hey I am you AI assistant, I can answer questions about your PDF", id: "0" },
 ]
-
-export function convertToAscii(inputString: string) {
-  // remove non ascii characters
-  const asciiString = inputString.replace(/[^\x00-\x7F]+/g, "");
-  return asciiString;
-}
 
 export function nameChecker(file_name:string){
   for (let index = 0; index < file_name.length; index++) {

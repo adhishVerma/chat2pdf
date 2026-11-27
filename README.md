@@ -4,11 +4,11 @@ Upload a PDF and chat with it. The app keeps everything in its own backend: user
 
 ## Stack
 
-- Next.js 14 (App Router) for the UI and the API, Tailwind, shadcn/ui
+- Next.js 15 (App Router) + React 19 for the UI and the API, Tailwind, shadcn/ui
 - Built-in email/password auth: scrypt password hashes, signed JWT session in an httpOnly cookie
 - Postgres + pgvector (Amazon RDS, EC2, or Docker) via Drizzle ORM and `pg`
 - S3 (or any S3-compatible store such as MinIO) for PDFs, bucket kept private
-- OpenAI (`gpt-3.5-turbo` and embeddings) through LangChain
+- OpenAI through the official SDK: `gpt-4o-mini` for answers, `text-embedding-3-small` for embeddings (override with `OPENAI_CHAT_MODEL` / `OPENAI_EMBEDDING_MODEL`)
 
 No Clerk, Neon, Pinecone or Lambda.
 
@@ -16,7 +16,7 @@ No Clerk, Neon, Pinecone or Lambda.
 
 1. **Upload:** the browser asks `POST /api/upload-url` for a pre-signed S3 URL (signed-in users only, PDF only, max 10 MB) and uploads the file straight to S3. AWS keys never leave the server.
 2. **Process:** `POST /api/create-chat` saves the chat and, in the background on the server, downloads the PDF, splits it into chunks, embeds them and stores them in `document_chunks`. The chat is marked `processed` when done.
-3. **Chat:** `POST /api/chat` checks the chat belongs to you, finds the closest chunks with pgvector and streams an answer. Both sides of the conversation are saved on the server.
+3. **Chat:** `POST /api/chat` checks the chat belongs to you, rewrites follow-up questions into standalone ones, finds the closest chunks with pgvector and streams an answer that cites page numbers. The response body is one JSON line with the sources, then the answer text. Both sides of the conversation are saved on the server.
 4. **View:** `GET /api/chat/:id/pdf` checks ownership and redirects to a 15-minute signed S3 link.
 
 ## Run locally

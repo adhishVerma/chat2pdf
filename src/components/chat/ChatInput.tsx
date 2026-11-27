@@ -12,7 +12,7 @@ type ChatInputProps = {
     isLoading: boolean
 }
 
-const resizeTextArea = (containerRef: React.RefObject<HTMLElement>) => {
+const resizeTextArea = (containerRef: React.RefObject<HTMLElement | null>) => {
     if (containerRef.current) {
         if (containerRef.current.innerHTML.length < 50) {
             containerRef.current.style.height = '0px'

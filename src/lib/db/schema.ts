@@ -49,6 +49,6 @@ export const documentChunks = pgTable('document_chunks', {
     content: text('content').notNull(),
     metadata: jsonb('metadata').notNull().default({}),
     embedding: vector('embedding').notNull(),
-}, (table) => ({
-    chatIdx: index('document_chunks_chat_id_idx').on(table.chatId),
-}))
+}, (table) => [
+    index('document_chunks_chat_id_idx').on(table.chatId),
+])

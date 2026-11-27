@@ -5,9 +5,9 @@ import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 import { createViewUrl } from "@/lib/s3";
 
-export async function GET(_req: Request, { params }: { params: { chatId: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ chatId: string }> }) {
     const session = await getSession();
-    const chatId = parseInt(params.chatId);
+    const chatId = parseInt((await params).chatId);
     if (!session || Number.isNaN(chatId)) {
         return Response.json({ message: "Unauthorized" }, { status: 401 });
     }

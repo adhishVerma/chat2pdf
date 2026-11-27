@@ -1,12 +1,11 @@
 'use client'
 
 import Balancer from "react-wrap-balancer"
-import { Message } from "ai/react"
 import Markdown from 'react-markdown'
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../ui/accordion";
-import { formattedSourceText } from "@/lib/utils";
+import { formattedSourceText, type Message, type Source } from "@/lib/utils";
 
 const wrappedText = (text: string) =>
   text.split("\n").map((line, index) => (
@@ -17,7 +16,7 @@ const wrappedText = (text: string) =>
   ));
 
 interface ChatBubbleProps extends Partial<Message> {
-  sources: string[]
+  sources: Source[]
 };
 
 const ChatBubble = ({
@@ -25,9 +24,7 @@ const ChatBubble = ({
   content,
   sources,
 }: ChatBubbleProps) => {
-  if (!content) return null;
-
-  const wrappedMessage = wrappedText(content);
+  const wrappedMessage = content ? wrappedText(content) : [];
 
   return (
     <Card className="mb-3">
@@ -48,10 +45,10 @@ const ChatBubble = ({
           {sources && sources.length ? (<Accordion type="single" collapsible className="w-full">
             {sources.map((source, index) => (
               <AccordionItem value={`source-${index}`} key={index}>
-                <AccordionTrigger>{`Source ${index + 1}`}</AccordionTrigger>
+                <AccordionTrigger>{`Source ${index + 1}${source.page ? ` · page ${source.page}` : ""}`}</AccordionTrigger>
                 <AccordionContent>
                   <Markdown>
-                    {formattedSourceText(source)}
+                    {formattedSourceText(source.content)}
                   </Markdown>
                 </AccordionContent>
               </AccordionItem>

@@ -1,9 +1,8 @@
 "use client"
-import React, { useEffect, useRef, useState } from 'react';
-import { Message } from 'ai'
-import { getSources, initialMessagesTemplate, scrollToEnd } from '@/lib/utils';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { initialMessagesTemplate, scrollToEnd, type Message } from '@/lib/utils';
 import ChatBubble from './ChatBubble';
-import { useChat } from 'ai/react';
+import { useChatStream } from './useChatStream';
 import ChatInput from './ChatInput';
 import { useAStore } from '@/store/store';
 import { useMutation } from '@tanstack/react-query';
@@ -20,10 +19,8 @@ type Props = {
 const ChatWindow = (props: Props) => {
   const { chatId } = props;
 
-  const pdfKey = useAStore((state) => state.pdfKey);
   const setPdfKey = useAStore((state) => state.setPdfKey);
   const [loading, setLoading] = useState(false);
-  const [initialMessages, setInitialMessages] = useState([])
 
   // fetch the chat details from chatId
   const { mutate } = useMutation({
@@ -36,17 +33,8 @@ const ChatWindow = (props: Props) => {
   })
 
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
-    initialMessages: (initialMessages?.length > 0) ? initialMessages : initialMessagesTemplate,
-    sendExtraMessageFields: true,
-    body: {
-      file_key: pdfKey,
-      chatId: chatId
-    },
-    onError: (err) => {
-      toast(err.message || "Something went wrong");
-    },
-  });
+  const showError = useCallback((message: string) => toast(message), []);
+  const { messages, setMessages, input, setInput, isLoading, send } = useChatStream(chatId, showError);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -57,7 +45,8 @@ const ChatWindow = (props: Props) => {
   useEffect(() => {
     mutate(chatId, {
       onSuccess: (data: any) => {
-        setInitialMessages(data.messages);
+        const saved: Message[] = (data.messages ?? []).map((m: any) => ({ id: String(m.id), role: m.role, content: m.content }));
+        setMessages(saved.length ? saved : initialMessagesTemplate);
         setPdfKey(data.file_key);
         setLoading(false);
       },
@@ -68,7 +57,7 @@ const ChatWindow = (props: Props) => {
       }
     })
 
-  }, [setPdfKey, mutate, chatId])
+  }, [setPdfKey, mutate, chatId, setMessages])
   
 
   if(loading){
@@ -82,16 +71,21 @@ const ChatWindow = (props: Props) => {
   return (
   <>
     <div className='overflow-auto mb-3 grow no-scrollbar' ref={containerRef}>
-      {messages.map(({ id, role, content }: Message, index) => (
+      {messages.map(({ id, role, content, sources }: Message) => (
         <ChatBubble
-          key={index}
+          key={id}
           role={role}
           content={content}
-          sources={data?.length ? getSources(data, role, index) : []}
+          sources={sources ?? []}
         />
       ))}
     </div>
-    <ChatInput inputChangeHandler={handleInputChange} input={input} submitHandler={handleSubmit} isLoading={isLoading} />
+    <ChatInput
+      inputChangeHandler={(e) => setInput(e.target.value)}
+      input={input}
+      submitHandler={(e) => { e.preventDefault(); send(input); }}
+      isLoading={isLoading}
+    />
   </>
   )
 }

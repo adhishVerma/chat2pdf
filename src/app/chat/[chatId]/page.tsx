@@ -10,12 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 
 type Props = {
-    'params': {
+    'params': Promise<{
         chatId: string
-    }
+    }>
 }
 
-const ChatPage = ({ params: { chatId } }: Props) => {
+const ChatPage = async ({ params }: Props) => {
+    const { chatId } = await params
 
     return (
         <div className='w-full rounded-sm mx-auto h-full'>
