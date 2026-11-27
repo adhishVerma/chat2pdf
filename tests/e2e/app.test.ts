@@ -57,6 +57,12 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect((await anon.post("/api/upload-url")).status).toBe(401);
     });
 
+    it("reports healthy without signing in", async () => {
+        const res = await new Client().get("/api/health");
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({ status: "ok", db: "ok", worker: "running" });
+    });
+
     it("sends security headers on pages and APIs", async () => {
         for (const url of ["/sign-in", "/api/auth/sign-out"]) {
             const res = await new Client().get(url);

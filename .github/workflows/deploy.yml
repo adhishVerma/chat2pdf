@@ -94,7 +94,7 @@ jobs:
         if: steps.check.outputs.skip != 'true' && vars.APP_URL != ''
         run: |
           for i in $(seq 1 30); do
-            curl -fsS "${{ vars.APP_URL }}/sign-in" > /dev/null && echo "up" && exit 0
+            curl -fsS "${{ vars.APP_URL }}/api/health" > /dev/null && echo "up" && exit 0
             sleep 5
           done
           echo "site did not come up" && exit 1

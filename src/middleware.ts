@@ -4,7 +4,7 @@ import { applySecurityHeaders } from "@/lib/security-headers";
 
 // Pages and API routes reachable while signed out
 const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up", "/verify-email", "/forgot-password", "/reset-password"];
-const PUBLIC_PREFIXES = ["/api/auth/"];
+const PUBLIC_PREFIXES = ["/api/auth/", "/api/health"];
 
 export async function middleware(req: NextRequest) {
     const res = await route(req);
