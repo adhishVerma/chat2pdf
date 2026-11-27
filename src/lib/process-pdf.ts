@@ -6,7 +6,7 @@ import { downloadFromS3 } from "./s3-server";
 import { chunkPdf } from "./pdf-text";
 import { deleteChatChunks, storeChunks } from "./vector-store";
 
-export async function processPdf(chatId: number, fileKey: string) {
+export async function processPdf(chatId: number, fileKey: string, userId?: string) {
     const file = await downloadFromS3(fileKey);
     let chunks;
     try {
@@ -21,6 +21,6 @@ export async function processPdf(chatId: number, fileKey: string) {
     }
     // re-running is safe: replace any chunks from a previous attempt
     await deleteChatChunks(chatId);
-    await storeChunks(chatId, chunks);
+    await storeChunks(chatId, chunks, userId ? { userId, chatId } : undefined);
     return { chunks: chunks.length };
 }

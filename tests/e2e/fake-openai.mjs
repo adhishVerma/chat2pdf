@@ -8,15 +8,16 @@ http.createServer((req, res) => {
     if (req.url.endsWith("/embeddings")) {
       const input = Array.isArray(j.input) ? j.input : [j.input];
       res.setHeader("content-type", "application/json");
-      return res.end(JSON.stringify({ object: "list", model: j.model, data: input.map((t, i) => ({ object: "embedding", index: i, embedding: emb(t) })), usage: { prompt_tokens: 1, total_tokens: 1 } }));
+      return res.end(JSON.stringify({ object: "list", model: j.model, data: input.map((t, i) => ({ object: "embedding", index: i, embedding: emb(t) })), usage: { prompt_tokens: input.length * 10, total_tokens: input.length * 10 } }));
     }
     if (req.url.endsWith("/chat/completions")) {
       const last = j.messages[j.messages.length - 1].content;
       const sys = j.messages[0].content;
       const answer = `TURNS=${j.messages.length} MODEL=${j.model} Q=${last.slice(0, 60)} CONTEXT_HAS_PAGE=${/\[p\. \d+\]/.test(sys)} See (p. 35) and **bold**\n\n- item one\n- item two`;
-      if (!j.stream) { res.setHeader("content-type", "application/json"); return res.end(JSON.stringify({ id: "x", object: "chat.completion", created: 0, model: j.model, choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "standalone: " + last } }] })); }
+      if (!j.stream) { res.setHeader("content-type", "application/json"); return res.end(JSON.stringify({ id: "x", object: "chat.completion", created: 0, model: j.model, choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "standalone: " + last } }], usage: { prompt_tokens: 50, completion_tokens: 10, total_tokens: 60 } })); }
       res.setHeader("content-type", "text/event-stream");
       for (const part of answer.match(/[\s\S]{1,10}/g)) res.write(`data: ${JSON.stringify({ id: "x", object: "chat.completion.chunk", created: 0, model: j.model, choices: [{ index: 0, delta: { content: part }, finish_reason: null }] })}\n\n`);
+      if (j.stream_options?.include_usage) res.write(`data: ${JSON.stringify({ id: "x", object: "chat.completion.chunk", created: 0, model: j.model, choices: [], usage: { prompt_tokens: 400, completion_tokens: 40, total_tokens: 440 } })}\n\n`);
       res.write("data: [DONE]\n\n"); return res.end();
     }
     res.statusCode = 404; res.end();

@@ -94,3 +94,16 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
     created_at timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS auth_tokens_user_idx ON auth_tokens (user_id, type);
+
+-- OpenAI token usage per user, for cost tracking and the daily chat budget
+CREATE TABLE IF NOT EXISTS openai_usage (
+    id                bigserial PRIMARY KEY,
+    user_id           varchar(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chat_id           integer REFERENCES chats(id) ON DELETE SET NULL,
+    kind              text NOT NULL,          -- 'answer', 'rewrite' or 'embedding'
+    model             text NOT NULL,
+    prompt_tokens     integer NOT NULL DEFAULT 0,
+    completion_tokens integer NOT NULL DEFAULT 0,
+    created_at        timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS openai_usage_user_time_idx ON openai_usage (user_id, created_at);
