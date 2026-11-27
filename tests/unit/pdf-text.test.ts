@@ -1,7 +1,6 @@
-import { readFileSync } from "fs";
-import path from "path";
 import { describe, expect, it } from "vitest";
 import { chunkPdf, splitText } from "@/lib/pdf-text";
+import { samplePdf } from "../support/make-pdf";
 
 describe("splitText", () => {
     it("returns nothing for blank text", () => {
@@ -36,13 +35,12 @@ describe("splitText", () => {
 });
 
 describe("chunkPdf", () => {
-    it("extracts text with page numbers from the sample PDF", async () => {
-        const chunks = await chunkPdf(readFileSync(path.join(__dirname, "../../docs/ipc.pdf")));
-        expect(chunks.length).toBeGreaterThan(100);
+    it("extracts text with page numbers", async () => {
+        const chunks = await chunkPdf(samplePdf());
+        expect(chunks.length).toBeGreaterThan(6);
         const pages = new Set(chunks.map((c) => c.page));
-        expect(Math.min(...pages)).toBe(1);
-        expect(Math.max(...pages)).toBe(112);
-        const conspiracy = chunks.find((c) => c.content.includes("criminal conspiracy"));
-        expect(conspiracy?.page).toBeGreaterThan(1);
+        expect([...pages].sort()).toEqual([1, 2, 3]);
+        const conspiracy = chunks.find((c) => c.content.includes("Definition of criminal conspiracy"));
+        expect(conspiracy?.page).toBe(2);
     });
 });

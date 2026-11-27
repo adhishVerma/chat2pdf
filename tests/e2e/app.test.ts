@@ -1,13 +1,12 @@
 // End-to-end tests against a running app (E2E_BASE_URL) backed by Postgres,
 // an S3-compatible store and tests/e2e/fake-openai.mjs. See .github/workflows/ci.yml.
-import { readFileSync, statSync } from "fs";
-import path from "path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { getPool } from "@/lib/db";
 import { getS3Client } from "@/lib/s3";
+import { samplePdf } from "../support/make-pdf";
 
 const BASE = process.env.E2E_BASE_URL;
-const PDF = path.join(__dirname, "../../docs/ipc.pdf");
+const PDF = samplePdf();
 
 class Client {
     cookie = "";
@@ -79,15 +78,15 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
     });
 
     it("uploads through a pre-signed URL and processes the PDF", async () => {
-        const size = statSync(PDF).size;
-        const res = await owner.post("/api/upload-url", { file_name: "ipc.pdf", file_type: "application/pdf", file_size: size });
+        const size = PDF.length;
+        const res = await owner.post("/api/upload-url", { file_name: "sample.pdf", file_type: "application/pdf", file_size: size });
         expect(res.status).toBe(200);
         const { upload_url, file_key } = await res.json();
 
-        const put = await fetch(upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: readFileSync(PDF) });
+        const put = await fetch(upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: PDF });
         expect(put.status).toBe(200);
 
-        const created = await owner.post("/api/create-chat", { file_key, file_name: "ipc.pdf" });
+        const created = await owner.post("/api/create-chat", { file_key, file_name: "sample.pdf" });
         expect(created.status).toBe(200);
         chatId = (await created.json()).chat_id;
 
