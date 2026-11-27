@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         return tooManyRequests(limited, "You've reached the upload limit. Please try again later.");
     }
     try {
-        const file_key = buildFileKey(file_name);
+        const file_key = buildFileKey(session.userId, file_name);
         const upload_url = await createUploadUrl(file_key, file_size);
         return NextResponse.json({ upload_url, file_key, file_name }, { status: 200 });
     } catch (err) {

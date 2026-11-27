@@ -3,6 +3,7 @@
 import "server-only";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomBytes } from "crypto";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 const UPLOAD_URL_TTL_SECONDS = 60;
@@ -37,10 +38,16 @@ export function getS3Client() {
     return client;
 }
 
-export function buildFileKey(fileName: string) {
-    // file_key example: uploads/1708543562858_aws-docs.pdf
+// Uploads live under the owner's id, so /api/create-chat can check that a key
+// belongs to the user creating the chat. The random part makes keys unguessable.
+// Example: uploads/6f1c…/1708543562858-9f86d081_aws-docs.pdf
+export function userUploadPrefix(userId: string) {
+    return `uploads/${userId}/`;
+}
+
+export function buildFileKey(userId: string, fileName: string) {
     const safeName = fileName.replace(/[^A-Za-z0-9._-]+/g, "-");
-    return `uploads/${Date.now().toString()}_${safeName}`;
+    return `${userUploadPrefix(userId)}${Date.now()}-${randomBytes(4).toString("hex")}_${safeName}`;
 }
 
 // Returns a short-lived URL the browser can PUT the PDF to directly.
