@@ -46,6 +46,24 @@ describe.skipIf(!hasDatabase)("pgvector chunk store", () => {
         expect(results.every((r) => r.page !== 9)).toBe(true);
     });
 
+    it("finds exact terms that vector search alone ranks too low", async () => {
+        const user = await createUser();
+        const chat = await createChat(user.id);
+        // many chunks that look like the query to the embedding ("section" repeated)...
+        const distractors = Array.from({ length: 30 }, (_, i) => ({ content: `section section section of chapter ${i}`, page: i + 1 }));
+        // ...and the one that actually contains "section 302", diluted by other words
+        const target = { content: "punishment for murder under section 302 is death or imprisonment for life and fine", page: 99 };
+        await storeChunks(chat, [...distractors, target]);
+
+        const results = await searchChunks(chat, "section 302", 4);
+        expect(results.map((r) => r.page)).toContain(99);
+    });
+
+    it("still answers from meaning when no words match exactly", async () => {
+        const [best] = await searchChunks(chatA, "yellow bananas", 1);
+        expect(best.page).toBe(2);
+    });
+
     it("deletes a chat's chunks", async () => {
         await deleteChatChunks(chatB);
         expect(await searchChunks(chatB, "anything", 5)).toEqual([]);
