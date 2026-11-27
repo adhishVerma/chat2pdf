@@ -5,17 +5,12 @@ import { FileText } from 'lucide-react'
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../ui/accordion";
-import { formattedSourceText, type Message, type Source } from "@/lib/utils";
+import { formattedSourceText, linkPageRefs, type Message, type Source } from "@/lib/utils";
 import { useAStore } from '@/store/store';
 
 interface ChatBubbleProps extends Partial<Message> {
   sources: Source[]
 };
-
-// Turns page mentions like "(p. 4)" or "p. 12" into links the viewer can jump to.
-export function linkPageRefs(text: string) {
-  return text.replace(/\b(pp?\.\s?)(\d{1,4})\b/g, (_m, prefix: string, page: string) => `[${prefix}${page}](#page=${page})`);
-}
 
 function PageLink({ page, children }: { page: number; children: React.ReactNode }) {
   const goToPage = useAStore((state) => state.goToPage);
