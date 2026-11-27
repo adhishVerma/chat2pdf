@@ -178,6 +178,15 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect((await other.get(`/api/chat/${chatId}/pdf`)).status).toBe(404);
         expect((await other.post("/api/chat", { chatId, question: "hi" })).status).toBe(401);
         expect((await other.req("DELETE", `/api/chat/${chatId}`)).status).toBe(401);
+
+        // knowing the owner's file key isn't enough to open their PDF in a chat of your own
+        const { file_key } = await (await owner.get(`/api/chat/${chatId}`)).json();
+        expect(file_key).toMatch(/^uploads\/[^/]+\/\d+-[0-9a-f]{8}_sample\.pdf$/);
+        await getPool().query("UPDATE users SET email_verified_at = now() WHERE email LIKE 'other-%'");
+        expect((await other.post("/api/create-chat", { file_key, file_name: "stolen.pdf" })).status).toBe(403);
+        expect((await other.post("/api/create-chat", { file_key: "uploads/../" + file_key, file_name: "x.pdf" })).status).toBe(403);
+        // and the owner can't attach a second chat to the same file
+        expect((await owner.post("/api/create-chat", { file_key, file_name: "again.pdf" })).status).toBe(409);
     });
 
     it("lets the owner delete the chat", async () => {
