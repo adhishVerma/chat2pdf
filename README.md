@@ -58,6 +58,19 @@ Keep the bucket private. Give the app an IAM user or role with only `s3:PutObjec
 ]
 ```
 
+## Rate limits
+
+Limits are stored in Postgres (`rate_limits`), so they hold across instances. Defaults live in `src/lib/rate-limit.ts`:
+
+| Action | Limit |
+| --- | --- |
+| Sign-in | 10 per email and 30 per IP every 15 minutes |
+| Sign-up | 5 per IP per hour |
+| Uploads | 20 per user per hour, 50 per day |
+| Chat messages | 20 per user per minute, 300 per day |
+
+Clients get HTTP 429 with a `Retry-After` header. IPs come from `X-Forwarded-For`, so only expose the app through your load balancer or Nginx, or clients can spoof it.
+
 ## Environment variables
 
 See [`.env.example`](./.env.example). None of them are sent to the browser.

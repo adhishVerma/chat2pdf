@@ -61,3 +61,10 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     embedding vector(1536) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS document_chunks_chat_id_idx ON document_chunks (chat_id);
+
+-- Fixed-window rate limit counters (shared by all app instances)
+CREATE TABLE IF NOT EXISTS rate_limits (
+    key          text PRIMARY KEY,
+    window_start timestamptz NOT NULL DEFAULT now(),
+    count        integer NOT NULL DEFAULT 0
+);
