@@ -1,4 +1,4 @@
-# Production image for chat2pdf (Next.js standalone server)
+# Production image for chat2pdf (Next.js standalone server + PDF worker)
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -18,6 +18,11 @@ RUN addgroup -S app && adduser -S app -G app
 COPY --from=build /app/public ./public
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
+# schema + migration script: `node scripts/db-init.mjs`
+COPY --from=build /app/db ./db
+COPY --from=build /app/scripts ./scripts
 USER app
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/sign-in > /dev/null || exit 1
 CMD ["node", "server.js"]

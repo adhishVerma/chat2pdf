@@ -33,15 +33,42 @@ npm run dev
 
 Open http://localhost:3000 and create an account.
 
-## Deploy on AWS
+## Deploy on AWS (EC2)
 
-**Option A, single EC2 instance:** install Docker, copy the repo and `.env`, then run `docker compose --profile app up -d --build`. This runs Postgres and the app on the same machine. Put Nginx or an ALB in front for HTTPS.
+`.github/workflows/deploy.yml` runs on every push to `main` (or manually from the Actions tab). It builds the Docker image, pushes it to GitHub Container Registry (`ghcr.io/<owner>/chat2pdf`), then SSHes into the server and runs `deploy/docker-compose.prod.yml`: Caddy (automatic HTTPS) → app (Next.js + PDF worker) → Postgres with pgvector. A one-off `migrate` container applies `db/init.sql` before the app starts.
 
-**Option B, EC2/ECS + RDS:**
+### One-time server setup
 
-1. Create an RDS PostgreSQL 15+ instance. pgvector is supported on RDS, and `db/init.sql` enables it.
-2. Set `DATABASE_URL` to the RDS endpoint (leave `DATABASE_SSL` unset so TLS is used) and run `npm run db:init` once.
-3. Build the image (`docker build -t chat2pdf .`) and run it on EC2 or ECS with the env vars from `.env.example`.
+1. Launch an EC2 instance (Ubuntu 24.04, t3.small or larger, 20 GB disk). Allow inbound 22 (your IP only), 80 and 443.
+2. Point your domain's DNS A record at the instance's Elastic IP.
+3. Install Docker: `curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker ubuntu` (then log out and back in).
+4. Create the app folder and env file:
+   ```bash
+   sudo mkdir -p /opt/chat2pdf && sudo chown ubuntu /opt/chat2pdf
+   nano /opt/chat2pdf/.env   # values from .env.example, plus the lines below
+   ```
+   ```bash
+   DOMAIN=chat.your-domain.com
+   APP_URL=https://chat.your-domain.com
+   POSTGRES_PASSWORD=<long random string>
+   ```
+   Give the instance an IAM role with S3 (your bucket) and `ses:SendEmail`, or put the keys in `.env`.
+
+### GitHub settings
+
+- Repository secrets: `EC2_HOST` (IP or hostname), `EC2_SSH_KEY` (private key for the instance), optionally `EC2_USER` (default `ubuntu`).
+- Optional repository variable `APP_URL` enables a smoke test after each deploy.
+- Optional: add required reviewers to the `production` environment to approve each deploy.
+
+Without `EC2_HOST`, the workflow still builds and pushes the image and skips the deploy step.
+
+### Using RDS instead of the local database
+
+Create an RDS PostgreSQL 15+ instance (pgvector is supported), set `DATABASE_URL` to its endpoint and `DATABASE_SSL=true` in `.env`, and delete the `db` service and its `depends_on` entries from `deploy/docker-compose.prod.yml`.
+
+### Without CI
+
+On any Docker host: `docker build -t chat2pdf .`, then run `docker compose -f deploy/docker-compose.prod.yml up -d` with `APP_IMAGE=chat2pdf` set. For local all-in-one testing, `docker compose --profile app up -d --build` uses the root `docker-compose.yml`.
 
 Processing runs in a worker inside the app server, so host it on a long-running server (EC2/ECS), not a serverless platform. Jobs are claimed with `FOR UPDATE SKIP LOCKED`, so several app instances can share the queue, and a job stuck in `processing` for 10 minutes (for example after a crash) is picked up again. To process on separate machines, set `DISABLE_WORKER=true` on the web servers and run `npm run worker` elsewhere.
 
