@@ -15,7 +15,7 @@ No Clerk, Neon, Pinecone or Lambda.
 ## How it works
 
 1. **Upload:** the browser asks `POST /api/upload-url` for a pre-signed S3 URL (signed-in users only, PDF only, max 10 MB) and uploads the file straight to S3. AWS keys never leave the server.
-2. **Process:** `POST /api/create-chat` saves the chat and, in the background on the server, downloads the PDF, splits it into chunks, embeds them and stores them in `document_chunks`. The chat is marked `processed` when done.
+2. **Process:** `POST /api/create-chat` saves the chat as `pending`. A worker in the app server picks it up from a Postgres-backed queue, downloads the PDF, splits it into chunks per page, embeds them and stores them in `document_chunks`, then marks the chat `ready`. Failures retry up to 3 times with backoff (30s, 2m) and then show as `failed` with a Retry button. The chat window shows progress while this happens.
 3. **Chat:** `POST /api/chat` checks the chat belongs to you, rewrites follow-up questions into standalone ones, finds the closest chunks with pgvector and streams an answer that cites page numbers. The response body is one JSON line with the sources, then the answer text. Both sides of the conversation are saved on the server.
 4. **View:** `GET /api/chat/:id/pdf` checks ownership and redirects to a 15-minute signed S3 link.
 
@@ -43,7 +43,7 @@ Open http://localhost:3000 and create an account.
 2. Set `DATABASE_URL` to the RDS endpoint (leave `DATABASE_SSL` unset so TLS is used) and run `npm run db:init` once.
 3. Build the image (`docker build -t chat2pdf .`) and run it on EC2 or ECS with the env vars from `.env.example`.
 
-Processing runs inside the app server, so host it on a long-running server (EC2/ECS), not a serverless platform with short timeouts.
+Processing runs in a worker inside the app server, so host it on a long-running server (EC2/ECS), not a serverless platform. Jobs are claimed with `FOR UPDATE SKIP LOCKED`, so several app instances can share the queue, and a job stuck in `processing` for 10 minutes (for example after a crash) is picked up again. To process on separate machines, set `DISABLE_WORKER=true` on the web servers and run `npm run worker` elsewhere.
 
 ### S3 bucket
 
@@ -69,4 +69,5 @@ See [`.env.example`](./.env.example). None of them are sent to the browser.
 - `npm run dev` – dev server
 - `npm run build` / `npm start` – production build and server (the build needs no env vars)
 - `npm run db:init` – create or update the database schema from `db/init.sql`
+- `npm run worker` – run the PDF processing worker on its own
 - `npm run lint` – lint

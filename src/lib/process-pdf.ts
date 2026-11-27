@@ -1,9 +1,6 @@
 // Downloads an uploaded PDF from S3, chunks it, embeds the chunks into Postgres
-// and marks the chat as processed.
+// Called by the queue worker (src/lib/jobs), which tracks status and retries.
 import "server-only";
-import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { chats } from "./db/schema";
 import { downloadFromS3 } from "./s3-server";
 import { chunkPdf } from "./pdf-text";
 import { deleteChatChunks, storeChunks } from "./vector-store";
@@ -16,6 +13,5 @@ export async function processPdf(chatId: number, fileKey: string) {
     // re-running is safe: replace any chunks from a previous attempt
     await deleteChatChunks(chatId);
     await storeChunks(chatId, chunks);
-    await db.update(chats).set({ processed: true }).where(eq(chats.id, chatId));
     return { chunks: chunks.length };
 }

@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:init": "tsx -r dotenv/config ./src/scripts/db-init.ts"
+    "db:init": "tsx -r dotenv/config ./src/scripts/db-init.ts",
+    "worker": "node --conditions=react-server --import tsx -r dotenv/config ./src/scripts/worker.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1178.0",

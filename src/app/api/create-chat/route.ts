@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
-import { processPdf } from "@/lib/process-pdf";
+import { wakeWorker } from "@/lib/jobs/worker";
 import { NextResponse } from "next/server";
 
 
@@ -35,10 +35,8 @@ export async function POST(req: Request) {
         }).returning({
             id: chats.id
         })
-        // process in the background on this server (no serverless timeout when self-hosted)
-        processPdf(chat_id[0].id, file_key)
-            .then((res) => console.log(`chat ${chat_id[0].id}: embedded ${res.chunks} chunks`))
-            .catch((err) => console.error(`chat ${chat_id[0].id}: processing failed`, err))
+        // the chat starts as "pending"; the queue worker picks it up
+        wakeWorker()
         return Response.json({
             message: "OK",
             chat_id: chat_id[0].id

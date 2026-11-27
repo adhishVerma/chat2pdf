@@ -10,6 +10,7 @@ type ChatInputProps = {
     submitHandler: React.FormEventHandler<HTMLFormElement>
     input: string;
     isLoading: boolean
+    disabled?: boolean
 }
 
 const resizeTextArea = (containerRef: React.RefObject<HTMLElement | null>) => {
@@ -21,7 +22,7 @@ const resizeTextArea = (containerRef: React.RefObject<HTMLElement | null>) => {
     }
 }
 
-const ChatInput = ({ inputChangeHandler, submitHandler, input, isLoading }: ChatInputProps) => {
+const ChatInput = ({ inputChangeHandler, submitHandler, input, isLoading, disabled = false }: ChatInputProps) => {
     const textArearef = useRef<HTMLTextAreaElement | null>(null)
 
     useEffect(() => {
@@ -34,8 +35,8 @@ const ChatInput = ({ inputChangeHandler, submitHandler, input, isLoading }: Chat
         <form className='flex w-full items-end space-x-2 grow-0' id='chat-input-form' onSubmit={submitHandler}>
             <div className='flex-1'>
                 <Label htmlFor="message">Your message</Label>
-                <Textarea ref={textArearef} form='chat-input-form' className='min-h-10' placeholder="Type your message here." id="message" value={input} onChange={inputChangeHandler} /></div>
-            <Button type="submit" disabled={isLoading}>{isLoading ? <Spinner /> : "Ask"}</Button></form>
+                <Textarea ref={textArearef} form='chat-input-form' className='min-h-10' placeholder={disabled ? "Available once your PDF is ready." : "Type your message here."} disabled={disabled} id="message" value={input} onChange={inputChangeHandler} /></div>
+            <Button type="submit" disabled={isLoading || disabled}>{isLoading ? <Spinner /> : "Ask"}</Button></form>
     )
 }
 
