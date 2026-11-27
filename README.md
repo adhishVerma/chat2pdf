@@ -93,4 +93,6 @@ See [`.env.example`](./.env.example). None of them are sent to the browser.
 - `npm run build` / `npm start` – production build and server (the build needs no env vars)
 - `npm run db:init` – create or update the database schema from `db/init.sql`
 - `npm run worker` – run the PDF processing worker on its own
-- `npm run lint` – lint
+- `npm run lint` / `npm run typecheck` – lint and type check
+- `npm test` – unit tests, plus integration tests when `DATABASE_URL` points at a Postgres with pgvector (they reset that database, so use a throwaway one)
+- `npm run test:e2e` – end-to-end tests against a running app (`E2E_BASE_URL`); see `.github/workflows/ci.yml` for the setup with moto (S3) and `tests/e2e/fake-openai.mjs`

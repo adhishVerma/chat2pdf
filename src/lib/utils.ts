@@ -50,3 +50,7 @@ export function nameChecker(file_name:string){
   }
   return true
 }
+// Turns page mentions like "(p. 4)" or "p. 12" into markdown links the viewer can jump to.
+export function linkPageRefs(text: string) {
+  return text.replace(/\b(pp?\.\s?)(\d{1,4})\b/g, (_m, prefix: string, page: string) => `[${prefix}${page}](#page=${page})`);
+}

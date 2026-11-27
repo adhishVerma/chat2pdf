@@ -10,6 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/unit tests/integration",
+    "test:e2e": "vitest run tests/e2e",
     "db:init": "tsx -r dotenv/config ./src/scripts/db-init.ts",
     "worker": "node --conditions=react-server --import tsx -r dotenv/config ./src/scripts/worker.ts"
   },
@@ -65,6 +68,7 @@
     "postcss": "^8.5.34",
     "tailwindcss": "^3.3.0",
     "tsx": "^4.7.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.1.2"
   }
 }
