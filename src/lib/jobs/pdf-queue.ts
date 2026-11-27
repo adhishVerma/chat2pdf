@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, getPool } from "../db";
 import { chats } from "../db/schema";
 import { processPdf } from "../process-pdf";
+import { isPermanent } from "./errors";
 
 export const MAX_ATTEMPTS = 3;
 const STALE_LOCK_MINUTES = 10; // a job "processing" longer than this is assumed dead
@@ -33,7 +34,8 @@ export async function runJob(job: Job) {
         console.log(`[pdf-queue] chat ${job.id}: ready (${chunks} chunks)`);
     } catch (err: any) {
         const message = String(err?.message ?? err).slice(0, 500);
-        const lastTry = job.attempts >= MAX_ATTEMPTS;
+        // permanent errors (no text, not a PDF, missing file) fail at once
+        const lastTry = isPermanent(err) || job.attempts >= MAX_ATTEMPTS;
         // back off 30s, 2m, ... between attempts
         const delaySeconds = 30 * 4 ** (job.attempts - 1);
         await db.update(chats).set({
