@@ -57,6 +57,14 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect((await anon.post("/api/upload-url")).status).toBe(401);
     });
 
+    it("sends security headers on pages and APIs", async () => {
+        for (const url of ["/sign-in", "/api/auth/sign-out"]) {
+            const res = await new Client().get(url);
+            expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+            expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+        }
+    });
+
     it("requires a confirmed email before uploading", async () => {
         const res = await owner.post("/api/upload-url", { file_name: "a.pdf", file_type: "application/pdf", file_size: 10 });
         expect(res.status).toBe(403);
