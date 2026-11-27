@@ -1,4 +1,4 @@
-import { boolean, customType, index, integer, jsonb, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { customType, index, integer, jsonb, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 export const EMBEDDING_DIMENSIONS = 1536; // OpenAI text-embedding-ada-002 / text-embedding-3-small
 
@@ -17,6 +17,9 @@ const vector = customType<{ data: number[]; driverData: string }>({
 
 export const userEnum = pgEnum('userEnum', ['assistant', 'user'])
 
+// pending -> processing -> ready, or failed after the last retry
+export const chatStatusEnum = pgEnum('chat_status', ['pending', 'processing', 'ready', 'failed'])
+
 export const users = pgTable('users', {
     id: varchar('id', { length: 64 }).primaryKey(),
     email: varchar('email', { length: 320 }).notNull().unique(),
@@ -31,8 +34,15 @@ export const chats = pgTable('chats', {
     createdAt: timestamp('created_at').notNull().defaultNow(),
     userId: varchar('userId', { length: 256 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     file_key: text('file_key').notNull(),
-    processed: boolean('processed').notNull().default(false)
-})
+    status: chatStatusEnum('status').notNull().default('pending'),
+    error: text('error'),
+    attempts: integer('attempts').notNull().default(0),
+    lockedAt: timestamp('locked_at'),
+    nextAttemptAt: timestamp('next_attempt_at').notNull().defaultNow(),
+}, (table) => [
+    index('chats_user_id_idx').on(table.userId),
+    index('chats_queue_idx').on(table.status, table.nextAttemptAt),
+])
 
 export const messages = pgTable('messages', {
     id: serial('id').primaryKey(),

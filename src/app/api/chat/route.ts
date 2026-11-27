@@ -36,8 +36,10 @@ export async function POST(req: Request) {
     if (!chat || chat.userId !== session.userId) {
         return new Response("Unauthorized", { status: 401 });
     }
-    if (!chat.processed) {
-        return new Response("Your PDF is still being processed. Try again in a moment.", { status: 409 });
+    if (chat.status !== "ready") {
+        return new Response(chat.status === "failed"
+            ? "We couldn't process this PDF. Use Retry to try again."
+            : "Your PDF is still being processed. Try again in a moment.", { status: 409 });
     }
 
     try {

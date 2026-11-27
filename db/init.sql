@@ -8,6 +8,11 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+    CREATE TYPE chat_status AS ENUM ('pending', 'processing', 'ready', 'failed');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS users (
     id            varchar(64) PRIMARY KEY,
     email         varchar(320) NOT NULL UNIQUE,
@@ -21,10 +26,23 @@ CREATE TABLE IF NOT EXISTS chats (
     pdf_url    text NOT NULL,
     created_at timestamp NOT NULL DEFAULT now(),
     "userId"   varchar(256) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    file_key   text NOT NULL,
-    processed  boolean NOT NULL DEFAULT false
+    file_key   text NOT NULL
 );
 CREATE INDEX IF NOT EXISTS chats_user_id_idx ON chats ("userId");
+
+-- PDF processing queue state (added after the first schema; safe to re-run)
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS status chat_status NOT NULL DEFAULT 'pending';
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS error text;
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS locked_at timestamp;
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS next_attempt_at timestamp NOT NULL DEFAULT now();
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'chats' AND column_name = 'processed') THEN
+        UPDATE chats SET status = 'ready' WHERE processed;
+        ALTER TABLE chats DROP COLUMN processed;
+    END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS chats_queue_idx ON chats (status, next_attempt_at);
 
 CREATE TABLE IF NOT EXISTS messages (
     id         serial PRIMARY KEY,

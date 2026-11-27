@@ -23,7 +23,7 @@ export async function GET(req: Request, context: { params: Promise<{ chatId: str
             })
         }
         const _messages = await db.select().from(messages).where(eq(messages.chatId, chatId));
-        return Response.json({ "messages": _messages, "file_key": chat?.file_key, "processed": chat?.processed, "status": "success" }, {
+        return Response.json({ "messages": _messages, "file_key": chat.file_key, "processing": { "status": chat.status, "error": chat.error, "attempts": chat.attempts }, "status": "success" }, {
             status: 200
         })
     } catch (err) {
