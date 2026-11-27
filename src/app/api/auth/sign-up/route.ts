@@ -7,6 +7,8 @@ import { hashPassword } from "@/lib/auth/password";
 import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from "@/lib/auth/session";
 import { credentialsSchema } from "../credentials";
 import { LIMITS, checkLimits, clientIp, tooManyRequests } from "@/lib/rate-limit";
+import { issueToken } from "@/lib/auth/tokens";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
     const limited = await checkLimits([[`sign-up:ip:${clientIp(req)}`, LIMITS.signUpPerIp]]);
@@ -27,7 +29,14 @@ export async function POST(req: Request) {
     const id = randomUUID();
     await db.insert(users).values({ id, email, passwordHash: await hashPassword(password) });
 
+    try {
+        await sendVerificationEmail(email, await issueToken(id, "verify_email"));
+    } catch (err) {
+        // the account exists; the user can resend from the app
+        console.error("Failed to send verification email", err);
+    }
+
     const res = NextResponse.json({ message: "OK" }, { status: 201 });
-    res.cookies.set(SESSION_COOKIE, await createSessionToken({ userId: id, email }), sessionCookieOptions());
+    res.cookies.set(SESSION_COOKIE, await createSessionToken({ userId: id, email, version: 0 }), sessionCookieOptions());
     return res;
 }

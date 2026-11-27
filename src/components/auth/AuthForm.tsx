@@ -52,7 +52,10 @@ export default function AuthForm({ mode }: Props) {
                         <Input id='email' type='email' autoComplete='email' required value={email} onChange={(e) => setEmail(e.target.value)} />
                     </div>
                     <div className='flex flex-col gap-2'>
-                        <Label htmlFor='password'>Password</Label>
+                        <div className='flex items-center justify-between'>
+                            <Label htmlFor='password'>Password</Label>
+                            {!isSignUp && <Link className='text-xs underline opacity-75' href='/forgot-password'>Forgot password?</Link>}
+                        </div>
                         <Input id='password' type='password' autoComplete={isSignUp ? 'new-password' : 'current-password'} required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
                     </div>
                     {error && <p className='text-sm text-red-600 dark:text-red-400'>{error}</p>}

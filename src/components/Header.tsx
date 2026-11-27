@@ -4,6 +4,8 @@ import Image from "next/image";
 import { getSession } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import SignOutButton from "@/components/auth/SignOutButton";
+import VerifyEmailBanner from "@/components/auth/VerifyEmailBanner";
+import { emailVerificationRequired } from "@/lib/auth";
 
 const Header = async () => {
     const session = await getSession();
@@ -29,6 +31,7 @@ const Header = async () => {
                     )}
                 </div>
             </nav>
+            {session && !session.emailVerified && emailVerificationRequired() && <VerifyEmailBanner email={session.email} />}
         </div>
     )
 }

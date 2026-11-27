@@ -25,6 +25,21 @@ export const users = pgTable('users', {
     email: varchar('email', { length: 320 }).notNull().unique(),
     passwordHash: text('password_hash').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    emailVerifiedAt: timestamp('email_verified_at'),
+    sessionVersion: integer('session_version').notNull().default(0),
+})
+
+export const authTokenTypeEnum = pgEnum('auth_token_type', ['verify_email', 'reset_password'])
+
+// One-time tokens for email links; only a SHA-256 hash of the token is stored.
+export const authTokens = pgTable('auth_tokens', {
+    id: serial('id').primaryKey(),
+    userId: varchar('user_id', { length: 64 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    type: authTokenTypeEnum('type').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
 export const chats = pgTable('chats', {

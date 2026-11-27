@@ -13,6 +13,8 @@ export const LIMITS = {
     uploadsPerUserDay: { limit: 50, windowSeconds: 24 * 60 * 60 },
     chatPerUserMinute: { limit: 20, windowSeconds: 60 },
     chatPerUserDay: { limit: 300, windowSeconds: 24 * 60 * 60 },
+    emailPerUser: { limit: 3, windowSeconds: 60 * 60 },
+    emailPerIp: { limit: 10, windowSeconds: 60 * 60 },
 } satisfies Record<string, Limit>;
 
 export type RateLimitResult = { ok: boolean; remaining: number; retryAfterSeconds: number };

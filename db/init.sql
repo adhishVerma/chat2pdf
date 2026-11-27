@@ -68,3 +68,24 @@ CREATE TABLE IF NOT EXISTS rate_limits (
     window_start timestamptz NOT NULL DEFAULT now(),
     count        integer NOT NULL DEFAULT 0
 );
+
+-- Email verification and password reset
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at timestamp;
+-- bumped on password reset; sessions carrying an older version are rejected
+ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version integer NOT NULL DEFAULT 0;
+
+DO $$ BEGIN
+    CREATE TYPE auth_token_type AS ENUM ('verify_email', 'reset_password');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+    id         serial PRIMARY KEY,
+    user_id    varchar(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type       auth_token_type NOT NULL,
+    token_hash text NOT NULL UNIQUE,
+    expires_at timestamp NOT NULL,
+    used_at    timestamp,
+    created_at timestamp NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS auth_tokens_user_idx ON auth_tokens (user_id, type);
