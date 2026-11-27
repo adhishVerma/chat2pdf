@@ -3,16 +3,13 @@ import z from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
-import { storeMessage } from "@/lib/db/store-message";
-import { answerQuestion } from "@/lib/rag";
+import { recentMessages, storeMessage } from "@/lib/db/store-message";
+import { MAX_HISTORY_TURNS, answerQuestion } from "@/lib/rag";
 import { LIMITS, checkLimits } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
     chatId: z.coerce.number().int().positive(),
-    messages: z.array(z.object({
-        role: z.enum(["user", "assistant"]),
-        content: z.string().max(20000),
-    })).min(1).max(200),
+    question: z.string().trim().min(1).max(4000),
 });
 
 // Response body: one line of JSON with the sources used, then the answer text
@@ -26,11 +23,7 @@ export async function POST(req: Request) {
     if (!parsed.success) {
         return new Response("Invalid request", { status: 400 });
     }
-    const { chatId, messages } = parsed.data;
-    const question = messages[messages.length - 1];
-    if (question.role !== "user" || !question.content.trim()) {
-        return new Response("Error: No question in the request", { status: 400 });
-    }
+    const { chatId, question } = parsed.data;
 
     // the chat must belong to the signed-in user
     const [chat] = await db.select().from(chats).where(eq(chats.id, chatId));
@@ -55,8 +48,10 @@ export async function POST(req: Request) {
     }
 
     try {
-        await storeMessage({ content: question.content, role: "user" }, chatId);
-        const { sources, stream } = await answerQuestion(chatId, messages.slice(0, -1), question.content);
+        // history comes from the database, never from the request body
+        const history = await recentMessages(chatId, MAX_HISTORY_TURNS);
+        await storeMessage({ content: question, role: "user" }, chatId);
+        const { sources, stream } = await answerQuestion(chatId, history, question);
 
         const encoder = new TextEncoder();
         let answer = "";

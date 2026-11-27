@@ -6,7 +6,7 @@ import type { Message, Source } from '@/lib/utils'
 let counter = 0;
 const newId = () => `${Date.now()}-${counter++}`;
 
-// Sends the conversation to /api/chat and streams the reply into state.
+// Sends the question to /api/chat and streams the reply into state.
 // The response's first line is JSON with the sources, the rest is the answer.
 export function useChatStream(chatId: string, onError: (message: string) => void) {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -18,8 +18,7 @@ export function useChatStream(chatId: string, onError: (message: string) => void
         if (!question || isLoading) return;
         const userMessage: Message = { id: newId(), role: 'user', content: question };
         const assistantId = newId();
-        const history = [...messages, userMessage];
-        setMessages([...history, { id: assistantId, role: 'assistant', content: '' }]);
+        setMessages((prev) => [...prev, userMessage, { id: assistantId, role: 'assistant', content: '' }]);
         setInput('');
         setIsLoading(true);
 
@@ -30,10 +29,8 @@ export function useChatStream(chatId: string, onError: (message: string) => void
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatId,
-                    messages: history.filter((m) => m.content && m.id !== '0').map(({ role, content }) => ({ role, content })),
-                }),
+                // only the question: the server loads the earlier messages itself
+                body: JSON.stringify({ chatId, question }),
             });
             if (!res.ok || !res.body) {
                 throw new Error((await res.text()) || 'Something went wrong');
@@ -64,7 +61,7 @@ export function useChatStream(chatId: string, onError: (message: string) => void
         } finally {
             setIsLoading(false);
         }
-    }, [chatId, isLoading, messages, onError]);
+    }, [chatId, isLoading, onError]);
 
     return { messages, setMessages, input, setInput, isLoading, send };
 }
