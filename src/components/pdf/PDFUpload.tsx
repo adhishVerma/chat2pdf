@@ -62,9 +62,9 @@ const PDFUpload = () => {
             let res: { file_key: string; file_name: string };
             try {
                 res = await uploadToS3(file);
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
-                toast("something went wrong while uploading the file");
+                toast(err?.response?.data?.message ?? "something went wrong while uploading the file");
                 return;
             }
             mutate(res, {

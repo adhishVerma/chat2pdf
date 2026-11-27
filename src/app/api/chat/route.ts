@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 import { storeMessage } from "@/lib/db/store-message";
 import { answerQuestion } from "@/lib/rag";
+import { LIMITS, checkLimits } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
     chatId: z.coerce.number().int().positive(),
@@ -40,6 +41,17 @@ export async function POST(req: Request) {
         return new Response(chat.status === "failed"
             ? "We couldn't process this PDF. Use Retry to try again."
             : "Your PDF is still being processed. Try again in a moment.", { status: 409 });
+    }
+
+    const limited = await checkLimits([
+        [`chat:minute:${session.userId}`, LIMITS.chatPerUserMinute],
+        [`chat:day:${session.userId}`, LIMITS.chatPerUserDay],
+    ]);
+    if (limited) {
+        return new Response("You're sending messages too quickly. Please wait a moment and try again.", {
+            status: 429,
+            headers: { "Retry-After": String(limited.retryAfterSeconds) },
+        });
     }
 
     try {

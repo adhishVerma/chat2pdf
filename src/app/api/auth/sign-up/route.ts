@@ -6,8 +6,13 @@ import { users } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
 import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from "@/lib/auth/session";
 import { credentialsSchema } from "../credentials";
+import { LIMITS, checkLimits, clientIp, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+    const limited = await checkLimits([[`sign-up:ip:${clientIp(req)}`, LIMITS.signUpPerIp]]);
+    if (limited) {
+        return tooManyRequests(limited, "Too many sign-ups from this network. Please try again later.");
+    }
     const parsed = credentialsSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
         return NextResponse.json({ message: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
