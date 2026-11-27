@@ -6,7 +6,7 @@ import { searchChunks, type ScoredChunk } from "./vector-store";
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
-const MAX_HISTORY_TURNS = 10;
+export const MAX_HISTORY_TURNS = 10;
 
 async function standaloneQuestion(history: ChatTurn[], question: string) {
     if (!history.length) return question;

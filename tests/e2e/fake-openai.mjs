@@ -13,7 +13,7 @@ http.createServer((req, res) => {
     if (req.url.endsWith("/chat/completions")) {
       const last = j.messages[j.messages.length - 1].content;
       const sys = j.messages[0].content;
-      const answer = `MODEL=${j.model} Q=${last.slice(0, 60)} CONTEXT_HAS_PAGE=${/\[p\. \d+\]/.test(sys)} See (p. 35) and **bold**\n\n- item one\n- item two`;
+      const answer = `TURNS=${j.messages.length} MODEL=${j.model} Q=${last.slice(0, 60)} CONTEXT_HAS_PAGE=${/\[p\. \d+\]/.test(sys)} See (p. 35) and **bold**\n\n- item one\n- item two`;
       if (!j.stream) { res.setHeader("content-type", "application/json"); return res.end(JSON.stringify({ id: "x", object: "chat.completion", created: 0, model: j.model, choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "standalone: " + last } }] })); }
       res.setHeader("content-type", "text/event-stream");
       for (const part of answer.match(/[\s\S]{1,10}/g)) res.write(`data: ${JSON.stringify({ id: "x", object: "chat.completion.chunk", created: 0, model: j.model, choices: [{ index: 0, delta: { content: part }, finish_reason: null }] })}\n\n`);
