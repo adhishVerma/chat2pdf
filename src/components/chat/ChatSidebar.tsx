@@ -1,10 +1,10 @@
 import React from 'react'
 import ChatItem from './ChatItem'
-import { auth } from '@clerk/nextjs'
+import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { chats } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { Button } from '../ui/button'
 import Link from 'next/link'
 
@@ -13,12 +13,12 @@ type Props = {
 }
 
 const ChatSidebar = async (props: Props) => {
-  const { userId } = auth();
-  if (!userId) {
-    return redirect(`/login`);
+  const session = await getSession();
+  if (!session) {
+    return redirect(`/sign-in`);
   }
 
-  const _chats = await db.select().from(chats).where(eq(chats.userId, userId));
+  const _chats = await db.select().from(chats).where(eq(chats.userId, session.userId)).orderBy(desc(chats.createdAt));
   return (
     <div className='h-full bg-primary-foreground p-2 rounded'>
       <Link href={`/chat`}>

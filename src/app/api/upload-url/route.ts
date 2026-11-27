@@ -4,7 +4,7 @@
 
 import { MAX_UPLOAD_BYTES, buildFileKey, createUploadUrl } from "@/lib/s3";
 import { nameChecker } from "@/lib/utils";
-import { auth } from "@clerk/nextjs";
+import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import z from "zod";
 
@@ -15,8 +15,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-    const { userId } = auth();
-    if (!userId) {
+    const session = await getSession();
+    if (!session) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 

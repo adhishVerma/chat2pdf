@@ -27,7 +27,7 @@ const ChatPage = ({ params: { chatId } }: Props) => {
                     <div className='w-full h-full absolute top-0 left-0 -z-10 p-4'>
                         <Skeleton className="w-full h-full rounded-lg " />
                     </div>
-                    <PDFviewer />
+                    <PDFviewer chatId={chatId} />
                 </ResizablePanel>
                 <ResizablePanel defaultSize={40} className='w-full flex flex-col p-4 border'>
                     <ChatWindow chatId={chatId} />

@@ -1,23 +1,38 @@
-import { neon, neonConfig } from "@neondatabase/serverless";
-import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
+import "server-only";
+import { Pool } from "pg";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
+import * as schema from "./schema";
 
-neonConfig.fetchConnectionCache = true;
+type DB = NodePgDatabase<typeof schema>;
 
-let instance: NeonHttpDatabase | null = null;
+let pool: Pool | null = null;
+let instance: DB | null = null;
 
-function getDb(): NeonHttpDatabase {
-  if (!instance) {
-    const url = process.env.DATABASE_URL;
-    if (!url) {
+export function getPool(): Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
       throw new Error("DATABASE_URL is not set");
     }
-    instance = drizzle(neon(url));
+    pool = new Pool({
+      connectionString,
+      max: 10,
+      // RDS requires TLS; set DATABASE_SSL=false for a local Postgres
+      ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
+    });
+  }
+  return pool;
+}
+
+function getDb(): DB {
+  if (!instance) {
+    instance = drizzle(getPool(), { schema });
   }
   return instance;
 }
 
 // Connects on first query instead of at import time, so builds don't need the DB URL.
-export const db = new Proxy({} as NeonHttpDatabase, {
+export const db = new Proxy({} as DB, {
   get: (_target, key) => {
     const real = getDb();
     const value = Reflect.get(real, key, real);

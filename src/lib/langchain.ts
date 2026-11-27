@@ -1,6 +1,5 @@
 import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { getVectorStore } from "./vector-store";
-import { getPineconeClient } from "./pinecone-client";
 import { StreamingTextResponse, LangChainStream, experimental_StreamData } from "ai"
 import { getStreamingModel, getNonStreamingModel } from "./llm";
 import { STANDALONE_QUESTION_TEMPLATE, QA_TEMPLATE } from "./prompt-templates";
@@ -8,15 +7,14 @@ import { STANDALONE_QUESTION_TEMPLATE, QA_TEMPLATE } from "./prompt-templates";
 type callChainArgs = {
     question: string;
     chatHistory: string;
-    namespace: string;
+    chatId: number;
     onFinal?: (completion: string) => Promise<void> | void;
 }
 
-export async function callChain({ question, chatHistory, namespace, onFinal }: callChainArgs) {
+export async function callChain({ question, chatHistory, chatId, onFinal }: callChainArgs) {
     try {
         const sanitizedQuestion = question.trim().replaceAll("\n", " ");
-        const pineconeClient = await getPineconeClient();
-        const vectorStore = await getVectorStore(pineconeClient, namespace);
+        const vectorStore = getVectorStore(chatId);
         const { stream, handlers } = LangChainStream({
             experimental_streamData: true,
             onFinal,

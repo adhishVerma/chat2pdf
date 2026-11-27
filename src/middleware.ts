@@ -1,16 +1,30 @@
-import { authMiddleware } from "@clerk/nextjs";
- 
-export default authMiddleware({
-    // Routes that can be accessed while signed out
-    publicRoutes: ['/'],
-    // Routes that can always be accessed, and have
-    // no authentication information
-    ignoredRoutes: ['/_not-found'],
-  });
+import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 
-  export const config = {
-    // Protects all routes, including api/trpc.
-    // See https://clerk.com/docs/references/nextjs/auth-middleware
-    // for more information about configuring your Middleware
-    matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
-  };
+// Pages and API routes reachable while signed out
+const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up"];
+const PUBLIC_PREFIXES = ["/api/auth/"];
+
+export async function middleware(req: NextRequest) {
+    const { pathname } = req.nextUrl;
+    if (PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+        return NextResponse.next();
+    }
+
+    const session = await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+    if (session) {
+        return NextResponse.next();
+    }
+
+    if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    const signIn = new URL("/sign-in", req.url);
+    signIn.searchParams.set("next", pathname);
+    return NextResponse.redirect(signIn);
+}
+
+export const config = {
+    // everything except static files and Next internals
+    matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api)(.*)"],
+};

@@ -1,14 +1,13 @@
 import { db } from "@/lib/db";
 import { deleteChat } from "@/lib/db/delete-chat";
 import { chats, messages } from "@/lib/db/schema";
-import { auth } from "@clerk/nextjs";
+import { getSession } from "@/lib/auth";
 import { eq } from "drizzle-orm";
-
-export const runtime = "edge";
 
 export async function GET(req: Request, context: { params: any }) {
     try {
-        const { userId } = auth()
+        const session = await getSession()
+        const userId = session?.userId
         let chat;
         const { chatId } = context.params
         const chatQuery = await db.select().from(chats).where(eq(chats.id, chatId));
@@ -21,7 +20,7 @@ export async function GET(req: Request, context: { params: any }) {
             })
         }
         const _messages = await db.select().from(messages).where(eq(messages.chatId, chatId));
-        return Response.json({ "messages": _messages, "file_key": chat?.file_key, "status": "success" }, {
+        return Response.json({ "messages": _messages, "file_key": chat?.file_key, "processed": chat?.processed, "status": "success" }, {
             status: 200
         })
     } catch (err) {
@@ -33,8 +32,8 @@ export async function GET(req: Request, context: { params: any }) {
 }
 
 export async function DELETE(req: Request, { params }: { params: { chatId: string } }) {
-    const { userId } = auth();
-    if (!userId) {
+    const session = await getSession();
+    if (!session) {
         return Response.json({ "status": "Unauthorized" }, { status: 401 })
     }
     const chatId = parseInt(params.chatId);
@@ -43,7 +42,7 @@ export async function DELETE(req: Request, { params }: { params: { chatId: strin
     }
     // only the owner of a chat may delete it
     const chatQuery = await db.select().from(chats).where(eq(chats.id, chatId));
-    if (!chatQuery.length || chatQuery[0].userId !== userId) {
+    if (!chatQuery.length || chatQuery[0].userId !== session.userId) {
         return Response.json({ "status": "Unauthorized" }, { status: 401 })
     }
     const result = await deleteChat(chatId);

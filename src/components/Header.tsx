@@ -1,10 +1,12 @@
 import { ModeToggle } from "@/components/mode-toggle";
 import Link from "next/link";
-import { UserButton, SignInButton, auth } from "@clerk/nextjs";
 import Image from "next/image";
+import { getSession } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import SignOutButton from "@/components/auth/SignOutButton";
 
-const Header = () => {
-    const { userId } = auth();
+const Header = async () => {
+    const session = await getSession();
 
     return (
         <div className="w-screen p-2 grow-0 ">
@@ -17,7 +19,14 @@ const Header = () => {
                 </Link>
                 <div className="flex gap-2 items-center">
                     <ModeToggle />
-                    {userId ? <UserButton /> : <SignInButton />}
+                    {session ? (
+                        <>
+                            <span className="hidden sm:inline text-sm opacity-75">{session.email}</span>
+                            <SignOutButton />
+                        </>
+                    ) : (
+                        <Link href="/sign-in"><Button variant="outline" size="sm">Sign in</Button></Link>
+                    )}
                 </div>
             </nav>
         </div>
