@@ -14,6 +14,7 @@
     "test": "vitest run tests/unit tests/integration",
     "test:e2e": "vitest run tests/e2e",
     "db:init": "node -r dotenv/config scripts/db-init.mjs",
+    "usage": "node -r dotenv/config scripts/usage-report.mjs",
     "worker": "node --conditions=react-server --import tsx -r dotenv/config ./src/scripts/worker.ts"
   },
   "dependencies": {

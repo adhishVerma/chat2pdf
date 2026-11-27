@@ -8,7 +8,7 @@ export const hasDatabase = !!process.env.DATABASE_URL;
 
 export async function resetDatabase() {
     const pool = getPool();
-    await pool.query("DROP TABLE IF EXISTS auth_tokens, rate_limits, document_chunks, messages, chats, users CASCADE");
+    await pool.query("DROP TABLE IF EXISTS openai_usage, auth_tokens, rate_limits, document_chunks, messages, chats, users CASCADE");
     await pool.query(readFileSync(path.join(__dirname, "../../db/init.sql"), "utf8"));
 }
 

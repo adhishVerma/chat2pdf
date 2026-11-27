@@ -6,6 +6,7 @@ import { chats } from "@/lib/db/schema";
 import { recentMessages, storeMessage } from "@/lib/db/store-message";
 import { MAX_HISTORY_TURNS, answerQuestion } from "@/lib/rag";
 import { LIMITS, checkLimits } from "@/lib/rate-limit";
+import { checkChatBudget } from "@/lib/usage";
 
 const bodySchema = z.object({
     chatId: z.coerce.number().int().positive(),
@@ -47,11 +48,19 @@ export async function POST(req: Request) {
         });
     }
 
+    const overBudget = await checkChatBudget(session.userId);
+    if (overBudget) {
+        return new Response("You've reached today's usage limit. It resets at midnight UTC.", {
+            status: 429,
+            headers: { "Retry-After": String(overBudget.retryAfterSeconds) },
+        });
+    }
+
     try {
         // history comes from the database, never from the request body
         const history = await recentMessages(chatId, MAX_HISTORY_TURNS);
         await storeMessage({ content: question, role: "user" }, chatId);
-        const { sources, stream } = await answerQuestion(chatId, history, question);
+        const { sources, stream } = await answerQuestion(chatId, session.userId, history, question);
 
         const encoder = new TextEncoder();
         let answer = "";

@@ -10,7 +10,7 @@ import { isPermanent } from "./errors";
 export const MAX_ATTEMPTS = 3;
 const STALE_LOCK_MINUTES = 10; // a job "processing" longer than this is assumed dead
 
-type Job = { id: number; file_key: string; attempts: number };
+type Job = { id: number; file_key: string; attempts: number; user_id: string };
 
 export async function claimJob(): Promise<Job | null> {
     const { rows } = await getPool().query<Job>(
@@ -22,14 +22,14 @@ export async function claimJob(): Promise<Job | null> {
                ORDER BY next_attempt_at
                FOR UPDATE SKIP LOCKED
                LIMIT 1)
-        RETURNING id, file_key, attempts`,
+        RETURNING id, file_key, attempts, "userId" AS user_id`,
     );
     return rows[0] ?? null;
 }
 
 export async function runJob(job: Job) {
     try {
-        const { chunks } = await processPdf(job.id, job.file_key);
+        const { chunks } = await processPdf(job.id, job.file_key, job.user_id);
         await db.update(chats).set({ status: "ready", lockedAt: null, error: null }).where(eq(chats.id, job.id));
         console.log(`[pdf-queue] chat ${job.id}: ready (${chunks} chunks)`);
     } catch (err: any) {

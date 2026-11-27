@@ -4,14 +4,15 @@ import { eq } from "drizzle-orm";
 import { db, getPool } from "./db";
 import { documentChunks } from "./db/schema";
 import { embedTexts } from "./openai";
+import type { UsageContext } from "./usage";
 
 export type Chunk = { content: string; page: number };
 export type ScoredChunk = Chunk & { score: number };
 
 const toVector = (v: number[]) => `[${v.join(",")}]`;
 
-export async function storeChunks(chatId: number, chunks: Chunk[]) {
-    const vectors = await embedTexts(chunks.map((c) => c.content));
+export async function storeChunks(chatId: number, chunks: Chunk[], usage?: UsageContext) {
+    const vectors = await embedTexts(chunks.map((c) => c.content), usage);
     const rows = chunks.map((c, i) => ({
         chatId,
         content: c.content,
@@ -32,8 +33,8 @@ const RRF_K = 60;
 // Postgres full-text search finds exact terms (section numbers, names, defined
 // words) that embeddings tend to blur. The two rankings are merged with
 // reciprocal rank fusion, so a chunk near the top of either list makes the cut.
-export async function searchChunks(chatId: number, query: string, k = 4): Promise<ScoredChunk[]> {
-    const [embedding] = await embedTexts([query]);
+export async function searchChunks(chatId: number, query: string, k = 4, usage?: UsageContext): Promise<ScoredChunk[]> {
+    const [embedding] = await embedTexts([query], usage);
     const { rows } = await getPool().query<{ content: string; metadata: { page?: number }; score: number }>(
         `WITH vec AS (
              SELECT id, row_number() OVER (ORDER BY embedding <=> $1::vector) AS rank

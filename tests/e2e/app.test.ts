@@ -134,6 +134,26 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect(saved.messages.map((m: { role: string }) => m.role)).toEqual(["user", "assistant"]);
     });
 
+    it("records OpenAI usage for the upload and the answer", async () => {
+        const { rows } = await getPool().query(
+            `SELECT kind, SUM(prompt_tokens + completion_tokens)::int AS tokens FROM openai_usage WHERE chat_id = $1 GROUP BY kind ORDER BY kind`,
+            [chatId],
+        );
+        const byKind = Object.fromEntries(rows.map((r) => [r.kind, r.tokens]));
+        expect(byKind.embedding).toBeGreaterThan(0); // the PDF's chunks and the question
+        expect(byKind.answer).toBe(440); // from the fake OpenAI's final stream chunk
+    });
+
+    it("stops answering once the daily chat budget is used up", async () => {
+        const { rows } = await getPool().query(`SELECT "userId" AS user_id FROM chats WHERE id = $1`, [chatId]);
+        const userId = rows[0].user_id;
+        await getPool().query(`INSERT INTO openai_usage (user_id, kind, model, prompt_tokens) VALUES ($1, 'answer', 'test', 10000000)`, [userId]);
+        const res = await owner.post("/api/chat", { chatId, question: "One more?" });
+        expect(res.status).toBe(429);
+        expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+        await getPool().query(`DELETE FROM openai_usage WHERE user_id = $1 AND model = 'test'`, [userId]);
+    });
+
     it("builds the conversation from saved messages, not from the request", async () => {
         const res = await owner.post("/api/chat", {
             chatId,
