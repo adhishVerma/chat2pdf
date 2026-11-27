@@ -9,7 +9,7 @@ export async function deleteChat(chatId: number) {
     if (chatId) {
         try {
             const chatdata = await db.select().from(chats).where(eq(chats.id, chatId));
-            if (chatdata) {
+            if (chatdata.length) {
                 // deleting all the chat in messages table in a particular chat.
                 await db.delete(messages).where(eq(messages.chatId, chatId));
                 

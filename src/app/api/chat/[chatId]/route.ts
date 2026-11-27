@@ -33,11 +33,20 @@ export async function GET(req: Request, context: { params: any }) {
 }
 
 export async function DELETE(req: Request, { params }: { params: { chatId: string } }) {
-    console.log('delete end point-hit');
-    console.log(params);
-    const { chatId } = params;
-    console.log(typeof chatId, chatId);
-    const result = await deleteChat(parseInt(chatId));
+    const { userId } = auth();
+    if (!userId) {
+        return Response.json({ "status": "Unauthorized" }, { status: 401 })
+    }
+    const chatId = parseInt(params.chatId);
+    if (Number.isNaN(chatId)) {
+        return Response.json({ "status": "failed" }, { status: 400 })
+    }
+    // only the owner of a chat may delete it
+    const chatQuery = await db.select().from(chats).where(eq(chats.id, chatId));
+    if (!chatQuery.length || chatQuery[0].userId !== userId) {
+        return Response.json({ "status": "Unauthorized" }, { status: 401 })
+    }
+    const result = await deleteChat(chatId);
     if (result?.message === 'success') {
         return Response.json({
             "status": "success"

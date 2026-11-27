@@ -25,6 +25,9 @@ export async function POST(req: Request) {
 
     const body: PromiseBody = await req.json();
     const { file_key, file_name } = body
+    if (typeof file_key !== "string" || !file_key.startsWith("uploads/") || typeof file_name !== "string" || !file_name) {
+        return NextResponse.json({ message: "Invalid file" }, { status: 400 })
+    }
     try {
         const chat_id = await db.insert(chats).values({
             file_key: file_key,

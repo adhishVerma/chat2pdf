@@ -1,21 +1,14 @@
-import { S3 } from "@aws-sdk/client-s3";
 import fs from "fs"
+import { getBucketName, getS3Client } from "./s3";
 
 export async function downloadFroms3(file_key: string): Promise<string> {
     return new Promise((async (resolve, reject) => {
         try {
-            const s3 = new S3({
-                region: 'ap-south-1',
-                credentials: {
-                    accessKeyId: process.env.NEXT_PUBLIC_S3_ACCESS_KEY_ID!,
-                    secretAccessKey: process.env.NEXT_PUBLIC_S3_SECRET_ACCESS_KEY!
-                }
-            })
             const params = {
-                Bucket: process.env.NEXT_PUBLIC_S3_BUCKET_NAME,
+                Bucket: getBucketName(),
                 Key: file_key,
             }
-            const obj = await s3.getObject(params);
+            const obj = await getS3Client().getObject(params);
             const file_name = `/tmp/helix${Date.now().toString()}.pdf`;
 
             if (obj.Body instanceof require('stream').Readable) {
@@ -24,11 +17,12 @@ export async function downloadFroms3(file_key: string): Promise<string> {
                     //@ts-ignore
                     obj.Body?.pipe(file).on("finish", () => resolve(file_name))
                 })
+            } else {
+                reject(new Error("Unexpected S3 response body"));
             }
         } catch (err) {
             console.error(err);
             reject(err);
-            return null;
         }
     }))
-} 
+}

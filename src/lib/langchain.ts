@@ -2,33 +2,35 @@ import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { getVectorStore } from "./vector-store";
 import { getPineconeClient } from "./pinecone-client";
 import { StreamingTextResponse, LangChainStream, experimental_StreamData } from "ai"
-import { streamingModel, nonStreamingModel } from "./llm";
+import { getStreamingModel, getNonStreamingModel } from "./llm";
 import { STANDALONE_QUESTION_TEMPLATE, QA_TEMPLATE } from "./prompt-templates";
 
 type callChainArgs = {
     question: string;
     chatHistory: string;
     namespace: string;
+    onFinal?: (completion: string) => Promise<void> | void;
 }
 
-export async function callChain({ question, chatHistory, namespace }: callChainArgs) {
+export async function callChain({ question, chatHistory, namespace, onFinal }: callChainArgs) {
     try {
         const sanitizedQuestion = question.trim().replaceAll("\n", " ");
         const pineconeClient = await getPineconeClient();
         const vectorStore = await getVectorStore(pineconeClient, namespace);
         const { stream, handlers } = LangChainStream({
             experimental_streamData: true,
+            onFinal,
         });
         const data = new experimental_StreamData();
 
         const chain = ConversationalRetrievalQAChain.fromLLM(
-            streamingModel,
+            getStreamingModel(),
             vectorStore.asRetriever(),
             {
                 qaTemplate: QA_TEMPLATE,
                 questionGeneratorTemplate: STANDALONE_QUESTION_TEMPLATE,
                 questionGeneratorChainOptions: {
-                    llm: nonStreamingModel,
+                    llm: getNonStreamingModel(),
                 },
                 returnSourceDocuments: true,
             }
