@@ -5,7 +5,7 @@ Upload a PDF and chat with it. The app keeps everything in its own backend: user
 ## Stack
 
 - Next.js 15 (App Router) + React 19 for the UI and the API, Tailwind, shadcn/ui
-- Built-in email/password auth: scrypt password hashes, signed JWT session in an httpOnly cookie
+- Built-in email/password auth: scrypt password hashes, signed JWT session in an httpOnly cookie, email verification and password reset via Amazon SES
 - Postgres + pgvector (Amazon RDS, EC2, or Docker) via Drizzle ORM and `pg`
 - S3 (or any S3-compatible store such as MinIO) for PDFs, bucket kept private
 - OpenAI through the official SDK: `gpt-4o-mini` for answers, `text-embedding-3-small` for embeddings (override with `OPENAI_CHAT_MODEL` / `OPENAI_EMBEDDING_MODEL`)
@@ -59,6 +59,16 @@ Keep the bucket private. Give the app an IAM user or role with only `s3:PutObjec
   }
 ]
 ```
+
+### Email (Amazon SES)
+
+New accounts get a confirmation link and must confirm before uploading (`REQUIRE_EMAIL_VERIFICATION=false` turns this off). "Forgot password?" on the sign-in page emails a one-hour reset link, and resetting signs the user out of every other session.
+
+1. In SES (same region as `SES_REGION`), verify your sending domain or address.
+2. New SES accounts are in the sandbox and can only send to verified addresses. Request production access before launch.
+3. Set `EMAIL_FROM` (for example `ChatPdf <no-reply@your-domain.com>`) and `APP_URL`. Give the app `ses:SendEmail`, through the instance role or `SES_ACCESS_KEY_ID`/`SES_SECRET_ACCESS_KEY`.
+
+Without `EMAIL_FROM`, emails are printed to the server log, which is handy in development.
 
 ## Rate limits
 

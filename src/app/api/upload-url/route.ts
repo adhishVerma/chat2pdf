@@ -4,7 +4,7 @@
 
 import { MAX_UPLOAD_BYTES, buildFileKey, createUploadUrl } from "@/lib/s3";
 import { nameChecker } from "@/lib/utils";
-import { getSession } from "@/lib/auth";
+import { emailVerificationRequired, getSession } from "@/lib/auth";
 import { LIMITS, checkLimits, tooManyRequests } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import z from "zod";
@@ -19,6 +19,10 @@ export async function POST(req: Request) {
     const session = await getSession();
     if (!session) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    if (emailVerificationRequired() && !session.emailVerified) {
+        return NextResponse.json({ message: "Please confirm your email address before uploading. Check your inbox for the link." }, { status: 403 });
     }
 
     const parsed = bodySchema.safeParse(await req.json().catch(() => null));
