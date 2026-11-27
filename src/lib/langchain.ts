@@ -9,15 +9,17 @@ type callChainArgs = {
     question: string;
     chatHistory: string;
     namespace: string;
+    onFinal?: (completion: string) => Promise<void> | void;
 }
 
-export async function callChain({ question, chatHistory, namespace }: callChainArgs) {
+export async function callChain({ question, chatHistory, namespace, onFinal }: callChainArgs) {
     try {
         const sanitizedQuestion = question.trim().replaceAll("\n", " ");
         const pineconeClient = await getPineconeClient();
         const vectorStore = await getVectorStore(pineconeClient, namespace);
         const { stream, handlers } = LangChainStream({
             experimental_streamData: true,
+            onFinal,
         });
         const data = new experimental_StreamData();
 

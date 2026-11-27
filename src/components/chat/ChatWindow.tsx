@@ -8,7 +8,6 @@ import ChatInput from './ChatInput';
 import { useAStore } from '@/store/store';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import { storeMessage } from '@/lib/db/store-message';
 import { navigate } from '@/app/chat/actions';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,9 +42,6 @@ const ChatWindow = (props: Props) => {
     body: {
       file_key: pdfKey,
       chatId: chatId
-    },
-    onFinish: (res: Message) => {
-      storeMessage(res, chatId);
     },
   });
 
