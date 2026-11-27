@@ -1,0 +1,64 @@
+# Production stack for a single EC2 instance:
+#   caddy (HTTPS) -> app (Next.js + PDF worker) -> db (Postgres + pgvector)
+# Lives in /opt/chat2pdf on the server next to a .env file (see .env.example).
+# To use Amazon RDS instead of the local db, set DATABASE_URL in .env to the
+# RDS endpoint, remove the `db` service and the `depends_on: db` entries.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chat2pdf
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: chat2pdf
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat2pdf"]
+      interval: 5s
+      retries: 20
+
+  migrate:
+    image: ${APP_IMAGE:-ghcr.io/adhishverma/chat2pdf:latest}
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://chat2pdf:${POSTGRES_PASSWORD}@db:5432/chat2pdf}
+      DATABASE_SSL: ${DATABASE_SSL:-false}
+    command: ["node", "scripts/db-init.mjs"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    image: ${APP_IMAGE:-ghcr.io/adhishverma/chat2pdf:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://chat2pdf:${POSTGRES_PASSWORD}@db:5432/chat2pdf}
+      DATABASE_SSL: ${DATABASE_SSL:-false}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

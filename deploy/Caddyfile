@@ -1,0 +1,13 @@
+# Caddy gets and renews a Let's Encrypt certificate for $DOMAIN automatically.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000 {
+		# the app reads the client IP from X-Forwarded-For for rate limiting
+		header_up X-Forwarded-For {remote_host}
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
