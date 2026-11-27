@@ -57,7 +57,7 @@
   },
   "devDependencies": {
     "@types/autosize": "^4.0.3",
-    "@types/node": "^20",
+    "@types/node": "^22.20.7",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",
