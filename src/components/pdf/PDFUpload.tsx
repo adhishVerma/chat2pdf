@@ -6,10 +6,25 @@ import React from 'react'
 import { useDropzone } from 'react-dropzone';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from "sonner"
-import { uploadToS3 } from '@/lib/s3';
 import axios from 'axios'
 import { useRouter } from 'next/navigation';
 import { nameChecker } from '@/lib/utils';
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // keep in sync with src/lib/s3.ts
+
+// Asks our API for a pre-signed URL, then uploads the PDF straight to S3.
+// No AWS credentials ever reach the browser.
+async function uploadToS3(file: File): Promise<{ file_key: string; file_name: string }> {
+    const { data } = await axios.post('/api/upload-url', {
+        file_name: file.name,
+        file_type: 'application/pdf',
+        file_size: file.size,
+    });
+    await axios.put(data.upload_url, file, {
+        headers: { 'Content-Type': 'application/pdf' },
+    });
+    return { file_key: data.file_key, file_name: data.file_name };
+}
 
 const PDFUpload = () => {
 
@@ -32,13 +47,23 @@ const PDFUpload = () => {
         onDrop: async (acceptedFiles) => {
             
             const file = acceptedFiles[0];
+            if (!file) {
+                toast("Please choose a single PDF file");
+                return;
+            }
             if(!nameChecker(file.name)){
                 toast("Please rename your file")
                 return
             }
-            const res = await uploadToS3(file);
-            // after uploading the file to s3
-            if (!res.file_key || !res.file_name) {
+            if (file.size > MAX_UPLOAD_BYTES) {
+                toast("PDFs must be 10 MB or smaller");
+                return;
+            }
+            let res: { file_key: string; file_name: string };
+            try {
+                res = await uploadToS3(file);
+            } catch (err) {
+                console.error(err);
                 toast("something went wrong while uploading the file");
                 return;
             }

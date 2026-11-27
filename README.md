@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# chat2pdf
 
-## Getting Started
+Upload a PDF and chat with it. The app stores the PDF in S3, an AWS Lambda splits it into chunks and embeds them into Pinecone, and answers are generated with OpenAI over the retrieved chunks (LangChain + Vercel AI SDK). Chats and messages are stored in Neon Postgres via Drizzle, and users sign in with Clerk.
 
-First, run the development server:
+## Stack
+
+- Next.js 14 (App Router), Tailwind, shadcn/ui
+- Clerk for auth
+- Neon Postgres + Drizzle ORM
+- AWS S3 for PDF storage, AWS Lambda for PDF processing (`LAMBDA_URL`)
+- Pinecone vector store, OpenAI (`gpt-3.5-turbo`, embeddings)
+
+## How uploads work
+
+1. The browser asks `POST /api/upload-url` for a pre-signed S3 URL (signed-in users only, PDF only, max 10 MB).
+2. The browser `PUT`s the file straight to S3 with that URL. AWS credentials never leave the server.
+3. The browser calls `POST /api/create-chat`, which saves the chat and triggers the Lambda to embed the PDF.
+
+## Setup
 
 ```bash
+npm install
+cp .env.example .env   # then fill in the values
+npx drizzle-kit push:pg  # create the tables in your database
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+See [`.env.example`](./.env.example) for the full list. Anything prefixed `NEXT_PUBLIC_` is bundled into the browser, so secrets (AWS keys, database URL, API keys) must never use that prefix.
 
-## Learn More
+### S3 bucket CORS
 
-To learn more about Next.js, take a look at the following resources:
+Because the browser uploads directly to S3, the bucket needs a CORS rule that allows `PUT` from your app's origin, for example:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000", "https://your-domain.com"],
+    "AllowedMethods": ["PUT", "GET"],
+    "AllowedHeaders": ["*"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+The PDF viewer loads `https://<bucket>.s3.ap-south-1.amazonaws.com/<file_key>`, so uploaded objects must be readable by the browser.
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- `npm run dev` – start the dev server
+- `npm run build` – production build (works without env vars set; they are checked at runtime)
+- `npm run lint` – lint

@@ -2,7 +2,7 @@ import { ConversationalRetrievalQAChain } from "langchain/chains";
 import { getVectorStore } from "./vector-store";
 import { getPineconeClient } from "./pinecone-client";
 import { StreamingTextResponse, LangChainStream, experimental_StreamData } from "ai"
-import { streamingModel, nonStreamingModel } from "./llm";
+import { getStreamingModel, getNonStreamingModel } from "./llm";
 import { STANDALONE_QUESTION_TEMPLATE, QA_TEMPLATE } from "./prompt-templates";
 
 type callChainArgs = {
@@ -22,13 +22,13 @@ export async function callChain({ question, chatHistory, namespace }: callChainA
         const data = new experimental_StreamData();
 
         const chain = ConversationalRetrievalQAChain.fromLLM(
-            streamingModel,
+            getStreamingModel(),
             vectorStore.asRetriever(),
             {
                 qaTemplate: QA_TEMPLATE,
                 questionGeneratorTemplate: STANDALONE_QUESTION_TEMPLATE,
                 questionGeneratorChainOptions: {
-                    llm: nonStreamingModel,
+                    llm: getNonStreamingModel(),
                 },
                 returnSourceDocuments: true,
             }

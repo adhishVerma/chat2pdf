@@ -1,6 +1,6 @@
 "use client"
 
-import { getS3Url } from '@/lib/s3'
+import { getS3Url } from '@/lib/s3-url'
 import { useAStore } from '@/store/store'
 import React from 'react'
 

@@ -1,64 +1,66 @@
-import { PutObjectCommandInput, PutObjectCommandOutput, DeleteObjectCommandInput, DeleteObjectCommandOutput, S3 } from '@aws-sdk/client-s3';
+// Server-only S3 helpers. Never import this file from a "use client" component:
+// it reads the AWS secret key, which must stay on the server.
+import "server-only";
+import { DeleteObjectCommand, PutObjectCommand, S3 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { S3_REGION, getS3Url } from "./s3-url";
 
-export async function uploadToS3(file: File): Promise<{ file_key: string; file_name: string }> {
+export { getS3Url };
 
-    return new Promise((resolve, reject) => {
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const UPLOAD_URL_TTL_SECONDS = 60;
 
-        try {
-            const s3 = new S3({
-                region: 'ap-south-1',
-                credentials: {
-                    accessKeyId: process.env.NEXT_PUBLIC_S3_ACCESS_KEY_ID!,
-                    secretAccessKey: process.env.NEXT_PUBLIC_S3_SECRET_ACCESS_KEY!
-                }
-            })
-
-            // file_key example: 0065245544000_aws_docs.pdf
-            const file_key = `uploads/${Date.now().toString()}_${file.name.replace(" ", "-")}`
-
-            // file upload params
-            const params: PutObjectCommandInput = {
-                Bucket: process.env.NEXT_PUBLIC_S3_BUCKET_NAME,
-                Key: file_key,
-                Body: file,
-                ContentType: 'application/pdf'
-            }
-
-            s3.putObject(params, (err: any, data: PutObjectCommandOutput | undefined) => {
-                return resolve({
-                    file_key,
-                    file_name: file.name,
-                })
-            })
-        } catch (err) {
-            return reject(err);
-        }
-    })
-}
-
-export function getS3Url(file_key: string) {
-    // https://chatpdf-helix.s3.ap-south-1.amazonaws.com/uploads/1708543562858_ipc.pdf
-    const url = file_key && file_key.length ? `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME}.s3.ap-south-1.amazonaws.com/${file_key}` : '';
-    return url;
-}
-
-export async function deleteFromS3(file_key: string) {
-
-    const s3 = new S3({
-        region: 'ap-south-1',
-        credentials: {
-            accessKeyId: process.env.NEXT_PUBLIC_S3_ACCESS_KEY_ID!,
-            secretAccessKey: process.env.NEXT_PUBLIC_S3_SECRET_ACCESS_KEY!
-        }
-    })
-
-    const params: DeleteObjectCommandInput = {
-        Bucket: process.env.NEXT_PUBLIC_S3_BUCKET_NAME,
-        Key: file_key,
+function requireEnv(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+        throw new Error(`Missing environment variable ${name}`);
     }
+    return value;
+}
+
+export function getBucketName() {
+    return requireEnv("NEXT_PUBLIC_S3_BUCKET_NAME");
+}
+
+let client: S3 | null = null;
+
+export function getS3Client() {
+    if (!client) {
+        client = new S3({
+            region: S3_REGION,
+            credentials: {
+                accessKeyId: requireEnv("S3_ACCESS_KEY_ID"),
+                secretAccessKey: requireEnv("S3_SECRET_ACCESS_KEY"),
+            },
+        });
+    }
+    return client;
+}
+
+export function buildFileKey(fileName: string) {
+    // file_key example: uploads/1708543562858_aws-docs.pdf
+    const safeName = fileName.replace(/[^A-Za-z0-9._-]+/g, "-");
+    return `uploads/${Date.now().toString()}_${safeName}`;
+}
+
+// Returns a short-lived URL the browser can PUT the PDF to directly.
+export async function createUploadUrl(fileKey: string, contentLength: number) {
+    const command = new PutObjectCommand({
+        Bucket: getBucketName(),
+        Key: fileKey,
+        ContentType: "application/pdf",
+        ContentLength: contentLength,
+    });
+    return getSignedUrl(getS3Client(), command, { expiresIn: UPLOAD_URL_TTL_SECONDS });
+}
+
+export async function deleteFromS3(fileKey: string) {
     try {
-        s3.deleteObject(params);
-    } catch (err: any) {
-        console.log(err.response);
+        await getS3Client().send(new DeleteObjectCommand({
+            Bucket: getBucketName(),
+            Key: fileKey,
+        }));
+    } catch (err) {
+        console.error("Failed to delete object from S3", err);
     }
 }

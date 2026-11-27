@@ -53,7 +53,7 @@ export function convertToAscii(inputString: string) {
 }
 
 export async function lambdaPreparePDF(file_key: string) {
-  const response = await axios.get(`${process.env.LAMBDA_URL}/?file_key=${file_key}`)
+  const response = await axios.get(`${process.env.LAMBDA_URL}/?file_key=${encodeURIComponent(file_key)}`)
   return response
 }
 
