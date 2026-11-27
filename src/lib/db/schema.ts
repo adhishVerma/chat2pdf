@@ -74,6 +74,8 @@ export const documentChunks = pgTable('document_chunks', {
     content: text('content').notNull(),
     metadata: jsonb('metadata').notNull().default({}),
     embedding: vector('embedding').notNull(),
+    // content_tsv (tsvector, generated from content) exists in db/init.sql; it is
+    // only read in raw SQL, so it isn't declared here
 }, (table) => [
     index('document_chunks_chat_id_idx').on(table.chatId),
 ])

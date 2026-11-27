@@ -1,4 +1,4 @@
-// Postgres + pgvector storage for PDF chunks. Chunks are scoped per chat.
+// Postgres + pgvector storage and hybrid search for PDF chunks. Chunks are scoped per chat.
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db, getPool } from "./db";
@@ -23,17 +23,41 @@ export async function storeChunks(chatId: number, chunks: Chunk[]) {
     }
 }
 
+// How many candidates each search contributes before they're merged.
+const CANDIDATES = 20;
+// Reciprocal rank fusion constant; 60 is the usual choice.
+const RRF_K = 60;
+
+// Hybrid search: pgvector similarity finds passages with the same meaning,
+// Postgres full-text search finds exact terms (section numbers, names, defined
+// words) that embeddings tend to blur. The two rankings are merged with
+// reciprocal rank fusion, so a chunk near the top of either list makes the cut.
 export async function searchChunks(chatId: number, query: string, k = 4): Promise<ScoredChunk[]> {
     const [embedding] = await embedTexts([query]);
-    const { rows } = await getPool().query<{ content: string; metadata: { page?: number }; distance: number }>(
-        `SELECT content, metadata, embedding <=> $1::vector AS distance
-           FROM document_chunks
-          WHERE chat_id = $2
-          ORDER BY distance
+    const { rows } = await getPool().query<{ content: string; metadata: { page?: number }; score: number }>(
+        `WITH vec AS (
+             SELECT id, row_number() OVER (ORDER BY embedding <=> $1::vector) AS rank
+               FROM document_chunks
+              WHERE chat_id = $2
+              ORDER BY embedding <=> $1::vector
+              LIMIT $4
+         ), kw AS (
+             SELECT id, row_number() OVER (ORDER BY ts_rank_cd(content_tsv, q) DESC) AS rank
+               FROM document_chunks, websearch_to_tsquery('english', $5) AS q
+              WHERE chat_id = $2 AND content_tsv @@ q
+              ORDER BY ts_rank_cd(content_tsv, q) DESC
+              LIMIT $4
+         )
+         SELECT c.content, c.metadata,
+                COALESCE(1.0 / ($6 + vec.rank), 0) + COALESCE(1.0 / ($6 + kw.rank), 0) AS score
+           FROM vec
+           FULL OUTER JOIN kw ON kw.id = vec.id
+           JOIN document_chunks c ON c.id = COALESCE(vec.id, kw.id)
+          ORDER BY score DESC, c.id
           LIMIT $3`,
-        [toVector(embedding), chatId, k],
+        [toVector(embedding), chatId, k, CANDIDATES, query, RRF_K],
     );
-    return rows.map((r) => ({ content: r.content, page: r.metadata?.page ?? 0, score: 1 - Number(r.distance) }));
+    return rows.map((r) => ({ content: r.content, page: r.metadata?.page ?? 0, score: Number(r.score) }));
 }
 
 export async function deleteChatChunks(chatId: number) {

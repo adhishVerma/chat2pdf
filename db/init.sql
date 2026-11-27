@@ -61,6 +61,11 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     embedding vector(1536) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS document_chunks_chat_id_idx ON document_chunks (chat_id);
+-- full-text search over chunks, combined with vector search (see src/lib/vector-store.ts);
+-- generated, so existing rows are filled in when the column is added
+ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS content_tsv tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;
+CREATE INDEX IF NOT EXISTS document_chunks_tsv_idx ON document_chunks USING gin (content_tsv);
 
 -- Fixed-window rate limit counters (shared by all app instances)
 CREATE TABLE IF NOT EXISTS rate_limits (
