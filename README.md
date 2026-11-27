@@ -72,9 +72,11 @@ On any Docker host: `docker build -t chat2pdf .`, then run `docker compose -f de
 
 Processing runs in a worker inside the app server, so host it on a long-running server (EC2/ECS), not a serverless platform. Jobs are claimed with `FOR UPDATE SKIP LOCKED`, so several app instances can share the queue, and a job stuck in `processing` for 10 minutes (for example after a crash) is picked up again. To process on separate machines, set `DISABLE_WORKER=true` on the web servers and run `npm run worker` elsewhere.
 
+The worker also runs a cleanup job every hour (`src/lib/jobs/cleanup.ts`). It deletes uploads older than 24 hours that never became a chat, expired or used email tokens, and old rate limit counters. An advisory lock keeps it to one instance at a time.
+
 ### S3 bucket
 
-Keep the bucket private. Give the app an IAM user or role with only `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject` on the bucket. Because the browser uploads directly, add a CORS rule:
+Keep the bucket private. Give the app an IAM user or role with only `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject` on the bucket's objects, plus `s3:ListBucket` on the bucket (the cleanup job lists `uploads/`). Because the browser uploads directly, add a CORS rule:
 
 ```json
 [

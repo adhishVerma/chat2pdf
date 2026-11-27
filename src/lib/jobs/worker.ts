@@ -1,9 +1,11 @@
 // Polls the PDF queue and processes jobs. Started once per server process from
 // src/instrumentation.ts, or on its own with `npm run worker`.
 import "server-only";
+import { runCleanup } from "./cleanup";
 import { claimJob, runJob } from "./pdf-queue";
 
 const POLL_MS = 2000;
+const CLEANUP_EVERY_MS = 60 * 60 * 1000; // hourly; the first run is a minute after start
 
 declare global {
     // eslint-disable-next-line no-var
@@ -41,6 +43,12 @@ export function startWorker() {
         }
         timer = setTimeout(tick, ms);
     };
+
+    const cleanup = () => runCleanup()
+        .then((r) => r && (r.orphanUploads || r.authTokens) && console.log("[cleanup]", r))
+        .catch((err) => console.error("[cleanup] failed", err));
+    setTimeout(cleanup, 60_000).unref();
+    setInterval(cleanup, CLEANUP_EVERY_MS).unref();
 
     globalThis.__pdfWorker = { wake: () => schedule(0) };
     schedule(0);

@@ -32,10 +32,7 @@ export async function hit(key: string, { limit, windowSeconds }: Limit): Promise
          RETURNING count, CEIL(EXTRACT(EPOCH FROM (window_start + make_interval(secs => $2) - now())))::int AS reset_in`,
         [key, windowSeconds],
     );
-    // occasionally clear out expired counters
-    if (Math.random() < 0.01) {
-        getPool().query(`DELETE FROM rate_limits WHERE window_start < now() - interval '2 days'`).catch(() => undefined);
-    }
+    // expired counters are removed by the hourly cleanup job (src/lib/jobs/cleanup.ts)
     const { count, reset_in } = rows[0];
     return { ok: count <= limit, remaining: Math.max(0, limit - count), retryAfterSeconds: Math.max(1, reset_in) };
 }
