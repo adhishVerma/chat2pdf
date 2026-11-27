@@ -4,6 +4,7 @@ import { readFileSync, statSync } from "fs";
 import path from "path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { getPool } from "@/lib/db";
+import { getS3Client } from "@/lib/s3";
 
 const BASE = process.env.E2E_BASE_URL;
 const PDF = path.join(__dirname, "../../docs/ipc.pdf");
@@ -163,5 +164,46 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
     it("lets the owner delete the chat", async () => {
         expect((await owner.req("DELETE", `/api/chat/${chatId}`)).status).toBe(200);
         expect((await owner.get(`/api/chat/${chatId}`)).status).toBe(401);
+    });
+});
+
+describe.skipIf(!BASE)("account settings", () => {
+    const password = "password123";
+
+    it("changes the password and signs out other sessions", async () => {
+        const email = `acct-${Date.now()}@example.com`;
+        const here = await signUp(email);
+        const elsewhere = new Client();
+        expect((await elsewhere.post("/api/auth/sign-in", { email, password })).status).toBe(200);
+
+        expect((await here.post("/api/account/password", { currentPassword: "wrong-password", newPassword: "newpassword456" })).status).toBe(403);
+        expect((await here.post("/api/account/password", { currentPassword: password, newPassword: "short" })).status).toBe(400);
+        expect((await here.post("/api/account/password", { currentPassword: password, newPassword: "newpassword456" })).status).toBe(200);
+
+        // this browser got a fresh cookie; the other session is signed out
+        expect((await here.get("/account")).status).toBe(200);
+        expect((await elsewhere.get("/account")).status).toBe(307);
+        expect((await new Client().post("/api/auth/sign-in", { email, password })).status).toBe(401);
+        expect((await new Client().post("/api/auth/sign-in", { email, password: "newpassword456" })).status).toBe(200);
+    });
+
+    it("deletes the account with its PDFs after checking the password", async () => {
+        const email = `gone-${Date.now()}@example.com`;
+        const user = await signUp(email);
+        await getPool().query("UPDATE users SET email_verified_at = now() WHERE email = $1", [email]);
+        const bytes = Buffer.from("%PDF-1.4 not really");
+        const { upload_url, file_key } = await (await user.post("/api/upload-url", { file_name: "x.pdf", file_type: "application/pdf", file_size: bytes.length })).json();
+        expect((await fetch(upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: bytes })).status).toBe(200);
+        expect((await user.post("/api/create-chat", { file_key, file_name: "x.pdf" })).status).toBe(200);
+
+        expect((await user.req("DELETE", "/api/account", { password: "wrong-password" })).status).toBe(403);
+        expect((await user.req("DELETE", "/api/account", { password })).status).toBe(200);
+
+        const { rows } = await getPool().query("SELECT count(*)::int AS n FROM users WHERE email = $1", [email]);
+        expect(rows[0].n).toBe(0);
+        const { rows: chatRows } = await getPool().query("SELECT count(*)::int AS n FROM chats WHERE file_key = $1", [file_key]);
+        expect(chatRows[0].n).toBe(0);
+        await expect(getS3Client().headObject({ Bucket: process.env.S3_BUCKET_NAME!, Key: file_key })).rejects.toThrow();
+        expect((await new Client().post("/api/auth/sign-in", { email, password })).status).toBe(401);
     });
 });

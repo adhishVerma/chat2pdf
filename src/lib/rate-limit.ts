@@ -15,6 +15,7 @@ export const LIMITS = {
     chatPerUserDay: { limit: 300, windowSeconds: 24 * 60 * 60 },
     emailPerUser: { limit: 3, windowSeconds: 60 * 60 },
     emailPerIp: { limit: 10, windowSeconds: 60 * 60 },
+    passwordChecksPerUser: { limit: 10, windowSeconds: 15 * 60 }, // change password, delete account
 } satisfies Record<string, Limit>;
 
 export type RateLimitResult = { ok: boolean; remaining: number; retryAfterSeconds: number };

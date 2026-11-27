@@ -23,7 +23,8 @@ const Header = async () => {
                     <ModeToggle />
                     {session ? (
                         <>
-                            <span className="hidden sm:inline text-sm opacity-75">{session.email}</span>
+                            <Link href="/account" className="hidden sm:inline text-sm opacity-75 hover:underline" title="Account settings">{session.email}</Link>
+                            <Link href="/account" className="sm:hidden"><Button variant="ghost" size="sm">Account</Button></Link>
                             <SignOutButton />
                         </>
                     ) : (
