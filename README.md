@@ -21,6 +21,8 @@ No Clerk, Neon, Pinecone or Lambda.
 
 ## Run locally
 
+Requires Node.js 22+ (the OpenAI SDK needs it) and Docker for the local database.
+
 ```bash
 npm install
 cp .env.example .env          # fill in AUTH_SECRET, S3 and OpenAI values
