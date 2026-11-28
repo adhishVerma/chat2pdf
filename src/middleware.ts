@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { applySecurityHeaders } from "@/lib/security-headers";
+import { isCrossSiteWrite } from "@/lib/csrf";
 
 // Pages and API routes reachable while signed out
 const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up", "/verify-email", "/forgot-password", "/reset-password"];
@@ -14,6 +15,10 @@ export async function middleware(req: NextRequest) {
 
 async function route(req: NextRequest) {
     const { pathname } = req.nextUrl;
+    // refuse writes to the API that come from another site
+    if (pathname.startsWith("/api/") && isCrossSiteWrite(req)) {
+        return NextResponse.json({ message: "Cross-site request refused" }, { status: 403 });
+    }
     if (PUBLIC_PATHS.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
         return NextResponse.next();
     }
