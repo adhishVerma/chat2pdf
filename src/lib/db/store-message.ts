@@ -26,7 +26,7 @@ export async function recentMessages(chatId: number, limit: number) {
         .select({ role: messages.role, content: messages.content })
         .from(messages)
         .where(eq(messages.chatId, chatId))
-        .orderBy(desc(messages.createdAt), desc(messages.id))
+        .orderBy(desc(messages.id)) // ids grow with time; matches messages_chat_id_id_idx
         .limit(limit);
     return rows.reverse();
 }

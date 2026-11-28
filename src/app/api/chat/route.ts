@@ -37,9 +37,13 @@ export async function POST(req: Request) {
             : "Your PDF is still being processed. Try again in a moment.", { status: 409 });
     }
 
-    const limited = await checkLimits([
-        [`chat:minute:${session.userId}`, LIMITS.chatPerUserMinute],
-        [`chat:day:${session.userId}`, LIMITS.chatPerUserDay],
+    // the rate limits and the daily budget are independent checks; run them together
+    const [limited, overBudget] = await Promise.all([
+        checkLimits([
+            [`chat:minute:${session.userId}`, LIMITS.chatPerUserMinute],
+            [`chat:day:${session.userId}`, LIMITS.chatPerUserDay],
+        ]),
+        checkChatBudget(session.userId),
     ]);
     if (limited) {
         return new Response("You're sending messages too quickly. Please wait a moment and try again.", {
@@ -47,8 +51,6 @@ export async function POST(req: Request) {
             headers: { "Retry-After": String(limited.retryAfterSeconds) },
         });
     }
-
-    const overBudget = await checkChatBudget(session.userId);
     if (overBudget) {
         return new Response("You've reached today's usage limit. It resets at midnight UTC.", {
             status: 429,
@@ -58,9 +60,13 @@ export async function POST(req: Request) {
 
     try {
         // history comes from the database, never from the request body
+        // read the history before saving the new question, then save it while
+        // retrieval runs instead of waiting for the insert first
         const history = await recentMessages(chatId, MAX_HISTORY_TURNS);
-        await storeMessage({ content: question, role: "user" }, chatId);
-        const { sources, stream } = await answerQuestion(chatId, session.userId, history, question);
+        const [, { sources, stream }] = await Promise.all([
+            storeMessage({ content: question, role: "user" }, chatId),
+            answerQuestion(chatId, session.userId, history, question),
+        ]);
 
         const encoder = new TextEncoder();
         let answer = "";

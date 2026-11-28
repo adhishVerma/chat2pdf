@@ -56,7 +56,7 @@ export const chats = pgTable('chats', {
     lockedAt: timestamp('locked_at'),
     nextAttemptAt: timestamp('next_attempt_at').notNull().defaultNow(),
 }, (table) => [
-    index('chats_user_id_idx').on(table.userId),
+    index('chats_user_created_idx').on(table.userId, table.createdAt.desc()),
     index('chats_queue_idx').on(table.status, table.nextAttemptAt),
 ])
 
@@ -66,7 +66,9 @@ export const messages = pgTable('messages', {
     content: text('content').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     role: userEnum('role').notNull()
-})
+}, (table) => [
+    index('messages_chat_id_id_idx').on(table.chatId, table.id),
+])
 
 // PDF chunks and their embeddings (replaces Pinecone)
 export const documentChunks = pgTable('document_chunks', {

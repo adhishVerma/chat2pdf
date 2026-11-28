@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
@@ -9,7 +10,8 @@ export type SessionUser = Session & { emailVerified: boolean };
 
 // Returns the signed-in user for the current request, or null. Checks the
 // database so sessions end when the user is deleted or resets their password.
-export async function getSession(): Promise<SessionUser | null> {
+// Cached per server render, so the header, sidebar and page share one lookup.
+export const getSession = cache(async (): Promise<SessionUser | null> => {
     const session = await verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value);
     if (!session) return null;
     const [user] = await db.select({
@@ -19,7 +21,7 @@ export async function getSession(): Promise<SessionUser | null> {
     }).from(users).where(eq(users.id, session.userId));
     if (!user || user.sessionVersion !== session.version) return null;
     return { ...session, email: user.email, emailVerified: !!user.emailVerifiedAt };
-}
+});
 
 export function emailVerificationRequired() {
     return process.env.REQUIRE_EMAIL_VERIFICATION !== "false";

@@ -17,13 +17,7 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   title: "Chat-pdf",
   description: "Made with love by helix",
-  icons: {
-    icon: [
-      {
-        url: '/icon.png'
-      }
-    ]
-  }
+  // the favicon comes from src/app/icon.png (a small copy of the logo)
 };
 
 export default function RootLayout({

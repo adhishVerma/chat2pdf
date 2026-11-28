@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { deleteChat } from "@/lib/db/delete-chat";
 import { chats, messages } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import z from "zod";
 
 export async function GET(req: Request, context: { params: Promise<{ chatId: string }> }) {
@@ -23,7 +23,7 @@ export async function GET(req: Request, context: { params: Promise<{ chatId: str
                 status: 401
             })
         }
-        const _messages = await db.select().from(messages).where(eq(messages.chatId, chatId));
+        const _messages = await db.select().from(messages).where(eq(messages.chatId, chatId)).orderBy(asc(messages.id));
         return Response.json({ "messages": _messages, "file_key": chat.file_key, "processing": { "status": chat.status, "error": chat.error, "attempts": chat.attempts }, "status": "success" }, {
             status: 200
         })
