@@ -132,6 +132,23 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         await owner.req("DELETE", `/api/chat/${badId}`);
     });
 
+    it("limits how often a failed PDF can be retried", async () => {
+        const bytes = Buffer.from("still not a pdf");
+        const { upload_url, file_key } = await (await owner.post("/api/upload-url", { file_name: "bad.pdf", file_type: "application/pdf", file_size: bytes.length })).json();
+        await fetch(upload_url, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: bytes });
+        const badId = (await (await owner.post("/api/create-chat", { file_key, file_name: "bad.pdf" })).json()).chat_id;
+        await getPool().query("UPDATE chats SET status = 'failed', locked_at = NULL, next_attempt_at = now() + interval '1 hour' WHERE id = $1", [badId]);
+
+        const statuses: number[] = [];
+        for (let i = 0; i < 11; i++) {
+            await getPool().query("UPDATE chats SET status = 'failed', next_attempt_at = now() + interval '1 hour' WHERE id = $1", [badId]);
+            statuses.push((await owner.post(`/api/chat/${badId}/retry`)).status);
+        }
+        expect(statuses.slice(0, 10).every((s) => s === 200)).toBe(true);
+        expect(statuses[10]).toBe(429);
+        await owner.req("DELETE", `/api/chat/${badId}`);
+    });
+
     it("answers with sources and page numbers, and saves the conversation", async () => {
         const res = await owner.post("/api/chat", { chatId, question: "What is criminal conspiracy?" });
         expect(res.status).toBe(200);

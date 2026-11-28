@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 import { retryChat } from "@/lib/jobs/pdf-queue";
 import { wakeWorker } from "@/lib/jobs/worker";
+import { LIMITS, checkLimits, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ chatId: string }> }) {
     const session = await getSession();
@@ -20,6 +21,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ chatId
     if (chat.status !== "failed") {
         return Response.json({ message: "Only failed chats can be retried" }, { status: 409 });
     }
+    const limited = await checkLimits([[`retry:${session.userId}`, LIMITS.retriesPerUserHour]]);
+    if (limited) return tooManyRequests(limited, "Too many retries. Please try again later.");
     await retryChat(chatId);
     wakeWorker();
     return Response.json({ message: "OK" }, { status: 200 });
