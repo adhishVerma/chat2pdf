@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../ui/accordion";
 import { formattedSourceText, linkPageRefs, type Message, type Source } from "@/lib/utils";
 import { useAStore } from '@/store/store';
+import CopyButton from './CopyButton';
 
 interface ChatBubbleProps extends Partial<Message> {
   sources: Source[]
@@ -27,6 +28,7 @@ function PageLink({ page, children }: { page: number; children: React.ReactNode 
 }
 
 const ChatBubble = ({
+  id,
   role = "assistant",
   content,
   sources,
@@ -35,13 +37,15 @@ const ChatBubble = ({
 
   return (
     <Card className="mb-3">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className={
           role != 'assistant' ? "text-amber-500 dark:text-amber-300"
             : "text-blue-500 dark:text-blue-300"
         }>
           {role == 'assistant' ? "AI" : "You"}
         </CardTitle>
+        {/* copies the answer as markdown, so it pastes well into notes and docs */}
+        {role === 'assistant' && content && id !== '0' && <CopyButton text={content} />}
       </CardHeader>
       <CardContent className="text-sm">
         {!content && <Skeleton className="h-2.5 rounded-sm" />}
