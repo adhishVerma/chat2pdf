@@ -69,8 +69,14 @@ export default async function AccountPage() {
           </div>
         </CardContent>
       </Card>
-      <ChangePasswordForm />
-      <DeleteAccountForm pdfCount={pdfs?.n ?? 0} />
+      {session.isDemo ? (
+        <p className='text-sm text-muted-foreground'>This is the shared demo account, so its password can&apos;t be changed and it can&apos;t be deleted.</p>
+      ) : (
+        <>
+          <ChangePasswordForm />
+          <DeleteAccountForm pdfCount={pdfs?.n ?? 0} />
+        </>
+      )}
     </div>
     </div>
   )

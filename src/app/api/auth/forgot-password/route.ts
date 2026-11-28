@@ -4,6 +4,7 @@ import z from "zod";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { issueToken } from "@/lib/auth/tokens";
+import { isDemoEmail } from "@/lib/demo-config";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { LIMITS, checkLimits, clientIp, tooManyRequests } from "@/lib/rate-limit";
 
@@ -25,7 +26,8 @@ export async function POST(req: Request) {
     }
 
     const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
-    if (user) {
+    // the demo's password is public and fixed; never send it a reset link
+    if (user && !isDemoEmail(email)) {
         try {
             await sendPasswordResetEmail(email, await issueToken(user.id, "reset_password"));
         } catch (err) {

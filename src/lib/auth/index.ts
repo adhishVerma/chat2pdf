@@ -5,8 +5,9 @@ import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema";
 import { SESSION_COOKIE, verifySessionToken, type Session } from "./session";
+import { isDemoEmail } from "../demo-config";
 
-export type SessionUser = Session & { emailVerified: boolean };
+export type SessionUser = Session & { emailVerified: boolean; isDemo: boolean };
 
 // Returns the signed-in user for the current request, or null. Checks the
 // database so sessions end when the user is deleted or resets their password.
@@ -20,7 +21,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
         emailVerifiedAt: users.emailVerifiedAt,
     }).from(users).where(eq(users.id, session.userId));
     if (!user || user.sessionVersion !== session.version) return null;
-    return { ...session, email: user.email, emailVerified: !!user.emailVerifiedAt };
+    return { ...session, email: user.email, emailVerified: !!user.emailVerifiedAt, isDemo: isDemoEmail(user.email) };
 });
 
 export function emailVerificationRequired() {

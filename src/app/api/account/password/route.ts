@@ -13,6 +13,7 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
     const session = await getSession();
     if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (session.isDemo) return NextResponse.json({ message: "The demo account's password can't be changed" }, { status: 403 });
 
     const parsed = bodySchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {

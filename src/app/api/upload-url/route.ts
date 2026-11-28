@@ -5,7 +5,7 @@
 import { MAX_UPLOAD_BYTES, buildFileKey, createUploadUrl } from "@/lib/s3";
 import { nameChecker } from "@/lib/utils";
 import { emailVerificationRequired, getSession } from "@/lib/auth";
-import { LIMITS, checkLimits, tooManyRequests } from "@/lib/rate-limit";
+import { LIMITS, checkLimits, tooManyRequests, limitSubject } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import z from "zod";
 
@@ -33,8 +33,8 @@ export async function POST(req: Request) {
     const { file_name, file_size } = parsed.data;
 
     const limited = await checkLimits([
-        [`upload:hour:${session.userId}`, LIMITS.uploadsPerUserHour],
-        [`upload:day:${session.userId}`, LIMITS.uploadsPerUserDay],
+        [`upload:hour:${limitSubject(session, req)}`, LIMITS.uploadsPerUserHour],
+        [`upload:day:${limitSubject(session, req)}`, LIMITS.uploadsPerUserDay],
     ]);
     if (limited) {
         return tooManyRequests(limited, "You've reached the upload limit. Please try again later.");

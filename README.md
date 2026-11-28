@@ -78,6 +78,16 @@ Every OpenAI call is recorded in `openai_usage` (user, chat, kind, model, tokens
 
 The worker also runs a cleanup job every hour (`src/lib/jobs/cleanup.ts`). It deletes uploads older than 24 hours that never became a chat, expired or used email tokens, and old rate limit counters. An advisory lock keeps it to one instance at a time.
 
+### Demo account
+
+A shared demo account is on by default. Its email and password appear on the landing and sign-in pages, with a "Sign in to the demo" button. Everyone who uses it shares the account, so the app shows a banner saying others can see uploads.
+
+- Demo PDFs and chats are deleted 15 minutes after they're created. The worker checks every minute.
+- Demo sign-ins last 15 minutes.
+- The demo account can't change its password, delete itself or get password-reset emails. It is created on first use and needs no email confirmation.
+- Rate limits for demo users are counted per IP address, not per account, so one visitor can't use them up for everyone. The daily token budget is shared, which caps what the demo can cost per day.
+- Settings: `DEMO_ACCOUNT=false` turns it off. `DEMO_EMAIL` and `DEMO_PASSWORD` change the credentials (defaults `demo@chatpdf.app` / `try-chatpdf-demo`).
+
 ### S3 bucket
 
 Keep the bucket private. Give the app an IAM user or role with only `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject` on the bucket's objects, plus `s3:ListBucket` on the bucket (the cleanup job lists `uploads/`). Because the browser uploads directly, add a CORS rule:

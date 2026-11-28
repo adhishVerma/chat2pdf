@@ -69,3 +69,10 @@ export function clientIp(req: Request, env: Record<string, string | undefined> =
     if (forwarded.length) return forwarded[Math.max(0, forwarded.length - hops)];
     return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
+
+// Who a per-user limit counts against. Everyone shares the demo account, so
+// demo visitors are counted by IP address instead; otherwise one visitor
+// could use up the limits for all of them.
+export function limitSubject(session: { userId: string; isDemo?: boolean }, req: Request) {
+    return session.isDemo ? `demo:${clientIp(req)}` : session.userId;
+}

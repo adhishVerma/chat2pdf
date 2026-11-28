@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import SignOutButton from "@/components/auth/SignOutButton";
 import VerifyEmailBanner from "@/components/auth/VerifyEmailBanner";
 import { emailVerificationRequired } from "@/lib/auth";
+import DemoBanner from "@/components/demo/DemoBanner";
 
 const Header = async () => {
     const session = await getSession();
@@ -32,7 +33,8 @@ const Header = async () => {
                     )}
                 </div>
             </nav>
-            {session && !session.emailVerified && emailVerificationRequired() && <VerifyEmailBanner email={session.email} />}
+            {session?.isDemo && <DemoBanner />}
+            {session && !session.isDemo && !session.emailVerified && emailVerificationRequired() && <VerifyEmailBanner email={session.email} />}
         </div>
     )
 }
