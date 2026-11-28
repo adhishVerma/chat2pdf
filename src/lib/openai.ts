@@ -17,12 +17,21 @@ export function getOpenAI() {
 
 // Pass `usage` to record the tokens against a user.
 export async function embedTexts(texts: string[], usage?: UsageContext): Promise<number[][]> {
-    const out: number[][] = [];
-    // the embeddings endpoint accepts batches; keep them modest
-    for (let i = 0; i < texts.length; i += 100) {
-        const res = await getOpenAI().embeddings.create({ model: EMBEDDING_MODEL, input: texts.slice(i, i + 100) });
-        out.push(...res.data.sort((a, b) => a.index - b.index).map((d) => d.embedding));
-        if (usage) await recordUsage(usage, "embedding", EMBEDDING_MODEL, tokensFrom(res.usage));
-    }
-    return out;
+    // the embeddings endpoint accepts batches; keep them modest and send a few
+    // at a time, so long PDFs don't wait on one request after another
+    const BATCH = 100, PARALLEL = 3;
+    const batches: string[][] = [];
+    for (let i = 0; i < texts.length; i += BATCH) batches.push(texts.slice(i, i + BATCH));
+    const results: number[][][] = new Array(batches.length);
+    let next = 0;
+    const worker = async () => {
+        while (next < batches.length) {
+            const n = next++;
+            const res = await getOpenAI().embeddings.create({ model: EMBEDDING_MODEL, input: batches[n] });
+            results[n] = res.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
+            if (usage) await recordUsage(usage, "embedding", EMBEDDING_MODEL, tokensFrom(res.usage));
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(PARALLEL, batches.length) }, worker));
+    return results.flat();
 }

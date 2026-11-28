@@ -19,9 +19,14 @@ export async function storeChunks(chatId: number, chunks: Chunk[], usage?: Usage
         metadata: { page: c.page },
         embedding: vectors[i],
     }));
-    for (let i = 0; i < rows.length; i += 100) {
-        await db.insert(documentChunks).values(rows.slice(i, i + 100));
-    }
+    // swap in the new chunks atomically: a re-run never leaves a half-filled
+    // or empty index behind, and the slow embedding calls stay outside the transaction
+    await db.transaction(async (tx) => {
+        await tx.delete(documentChunks).where(eq(documentChunks.chatId, chatId));
+        for (let i = 0; i < rows.length; i += 200) {
+            await tx.insert(documentChunks).values(rows.slice(i, i + 200));
+        }
+    });
 }
 
 // How many candidates each search contributes before they're merged.

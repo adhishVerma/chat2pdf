@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS chats (
     "userId"   varchar(256) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     file_key   text NOT NULL
 );
-CREATE INDEX IF NOT EXISTS chats_user_id_idx ON chats ("userId");
+-- the sidebar lists a user's chats newest first
+CREATE INDEX IF NOT EXISTS chats_user_created_idx ON chats ("userId", created_at DESC);
+DROP INDEX IF EXISTS chats_user_id_idx;
 
 -- PDF processing queue state (added after the first schema; safe to re-run)
 ALTER TABLE chats ADD COLUMN IF NOT EXISTS status chat_status NOT NULL DEFAULT 'pending';
@@ -53,7 +55,9 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at timestamp NOT NULL DEFAULT now(),
     role       "userEnum" NOT NULL
 );
-CREATE INDEX IF NOT EXISTS messages_chat_id_idx ON messages (chat_id);
+-- messages are always read per chat in id order (history, recent turns)
+CREATE INDEX IF NOT EXISTS messages_chat_id_id_idx ON messages (chat_id, id);
+DROP INDEX IF EXISTS messages_chat_id_idx;
 
 CREATE TABLE IF NOT EXISTS document_chunks (
     id        serial PRIMARY KEY,

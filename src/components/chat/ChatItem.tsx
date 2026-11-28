@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { navigate } from '@/app/chat/actions'
 import { AlertTriangle, Loader2, Pencil, Trash } from 'lucide-react'
@@ -61,6 +62,13 @@ const ChatItem = ({ item, chatId }: Props) => {
     }
 
     const selected = parseInt(chatId, 10) === item.id;
+    // The sidebar is rendered on the server, so its status can be stale. For the
+    // open chat, follow the status ChatWindow is already polling (no extra requests).
+    const { data: live } = useQuery<{ processing: { status: NonNullable<Props['item']['status']> } }>({
+        queryKey: ['chat', String(item.id)],
+        enabled: false,
+    });
+    const status = (selected && live?.processing.status) || item.status;
 
     return (
         <div
@@ -90,8 +98,8 @@ const ChatItem = ({ item, chatId }: Props) => {
             ) : (
                 <span className='grow text-left overflow-hidden text-ellipsis whitespace-nowrap' onDoubleClick={startEditing}>{name}</span>
             )}
-            {(item.status === 'pending' || item.status === 'processing') && <Loader2 aria-label='Processing' className='size-4 flex-shrink-0 animate-spin opacity-60' />}
-            {item.status === 'failed' && <AlertTriangle aria-label='Processing failed' className='size-4 flex-shrink-0 text-red-600 dark:text-red-400' />}
+            {(status === 'pending' || status === 'processing') && <Loader2 aria-label='Processing' className='size-4 flex-shrink-0 animate-spin opacity-60' />}
+            {status === 'failed' && <AlertTriangle aria-label='Processing failed' className='size-4 flex-shrink-0 text-red-600 dark:text-red-400' />}
             {!editing && (
                 <button type='button' aria-label='Rename chat' title='Rename' onClick={startEditing}
                     className={`flex-shrink-0 ${selected ? 'opacity-45' : 'opacity-0'} group-hover:opacity-45 [@media(hover:none)]:opacity-45 focus:opacity-75 hover:!opacity-75`}>

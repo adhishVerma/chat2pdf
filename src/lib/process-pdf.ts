@@ -4,7 +4,7 @@ import "server-only";
 import { PermanentJobError } from "./jobs/errors";
 import { downloadFromS3 } from "./s3-server";
 import { chunkPdf } from "./pdf-text";
-import { deleteChatChunks, storeChunks } from "./vector-store";
+import { storeChunks } from "./vector-store";
 
 export async function processPdf(chatId: number, fileKey: string, userId?: string) {
     const file = await downloadFromS3(fileKey);
@@ -19,8 +19,7 @@ export async function processPdf(chatId: number, fileKey: string, userId?: strin
     if (!chunks.length) {
         throw new PermanentJobError("No text found in this PDF. Scanned PDFs (images of pages) aren't supported yet.");
     }
-    // re-running is safe: replace any chunks from a previous attempt
-    await deleteChatChunks(chatId);
+    // re-running is safe: storeChunks replaces any chunks from a previous attempt
     await storeChunks(chatId, chunks, userId ? { userId, chatId } : undefined);
     return { chunks: chunks.length };
 }
