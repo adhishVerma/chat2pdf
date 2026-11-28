@@ -93,6 +93,7 @@ const ChatWindow = ({ chatId }: Props) => {
         {messages.map(({ id, role, content, sources }: Message) => (
           <ChatBubble
             key={id}
+            id={id}
             role={role}
             content={content}
             sources={sources ?? []}
