@@ -116,7 +116,7 @@ Limits are stored in Postgres (`rate_limits`), so they hold across instances. De
 | Uploads | 20 per user per hour, 50 per day |
 | Chat messages | 20 per user per minute, 300 per day |
 
-Clients get HTTP 429 with a `Retry-After` header. IPs come from `X-Forwarded-For`, so only expose the app through your load balancer or Nginx, or clients can spoof it.
+Clients get HTTP 429 with a `Retry-After` header. IPs come from `X-Forwarded-For`, read from the right: with `TRUSTED_PROXY_COUNT=1` (the default) the app uses the address added by the proxy directly in front of it, so a client can't pick its own IP by sending the header. If traffic passes through more proxies that each append (for example CloudFront then an ALB), set it to that number. Don't expose the app port directly; put it behind Caddy, Nginx or a load balancer.
 
 ## Environment variables
 

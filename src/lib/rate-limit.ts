@@ -56,8 +56,14 @@ export function tooManyRequests(result: RateLimitResult, message = "Too many req
 
 // Client IP from the reverse proxy (ALB/Nginx set X-Forwarded-For). Only trust this
 // header when the app is reachable solely through your proxy.
-export function clientIp(req: Request) {
-    const forwarded = req.headers.get("x-forwarded-for");
-    if (forwarded) return forwarded.split(",")[0].trim();
-    return req.headers.get("x-real-ip") ?? "unknown";
+// The client's IP for rate limiting. Proxies append to X-Forwarded-For, so the
+// leftmost entries are whatever the client sent and can't be trusted. Count
+// TRUSTED_PROXY_COUNT entries from the right instead: with one proxy in front
+// (Caddy in deploy/, or an ALB) the last entry is the address that proxy saw.
+export function clientIp(req: Request, env: Record<string, string | undefined> = process.env) {
+    const hops = Math.max(1, parseInt(env.TRUSTED_PROXY_COUNT || "1", 10) || 1);
+    const forwarded = (req.headers.get("x-forwarded-for") ?? "")
+        .split(",").map((s) => s.trim()).filter(Boolean);
+    if (forwarded.length) return forwarded[Math.max(0, forwarded.length - hops)];
+    return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
