@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BookOpenText, Copy, Lock, MessageSquareText, Quote, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth";
+import DemoCredentials from "@/components/demo/DemoCredentials";
 
 export const metadata: Metadata = {
   title: "ChatPdf · Ask your PDFs anything",
@@ -76,6 +77,7 @@ export default async function Home() {
               <Link href={primary.href}><Button size="lg">{primary.label}</Button></Link>
               {!session && <Link href="/sign-in"><Button size="lg" variant="outline">Sign in</Button></Link>}
             </div>
+            {!session && <DemoCredentials />}
           </div>
           <div className="flex justify-center lg:justify-end">
             <ProductPreview />

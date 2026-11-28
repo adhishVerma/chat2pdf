@@ -15,12 +15,12 @@ function getSecret() {
     return new TextEncoder().encode(secret);
 }
 
-export async function createSessionToken(session: Session) {
+export async function createSessionToken(session: Session, maxAgeSeconds = SESSION_MAX_AGE_SECONDS) {
     return new SignJWT({ email: session.email, ver: session.version })
         .setProtectedHeader({ alg: "HS256" })
         .setSubject(session.userId)
         .setIssuedAt()
-        .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
+        .setExpirationTime(`${maxAgeSeconds}s`)
         .sign(getSecret());
 }
 
@@ -35,12 +35,12 @@ export async function verifySessionToken(token: string | undefined): Promise<Ses
     }
 }
 
-export function sessionCookieOptions() {
+export function sessionCookieOptions(maxAgeSeconds = SESSION_MAX_AGE_SECONDS) {
     return {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax" as const,
         path: "/",
-        maxAge: SESSION_MAX_AGE_SECONDS,
+        maxAge: maxAgeSeconds,
     };
 }

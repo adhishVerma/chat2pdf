@@ -2,10 +2,12 @@
 // src/instrumentation.ts, or on its own with `npm run worker`.
 import "server-only";
 import { runCleanup } from "./cleanup";
+import { runDemoCleanup } from "../demo";
 import { claimJob, runJob } from "./pdf-queue";
 
 const POLL_MS = 2000;
 const CLEANUP_EVERY_MS = 60 * 60 * 1000; // hourly; the first run is a minute after start
+const DEMO_CLEANUP_EVERY_MS = 60 * 1000;
 
 declare global {
     // eslint-disable-next-line no-var
@@ -49,6 +51,12 @@ export function startWorker() {
         .catch((err) => console.error("[cleanup] failed", err));
     setTimeout(cleanup, 60_000).unref();
     setInterval(cleanup, CLEANUP_EVERY_MS).unref();
+
+    // the demo account's PDFs and chats only live for a few minutes
+    const demoCleanup = () => runDemoCleanup()
+        .then((r) => r?.deletedChats && console.log("[demo-cleanup]", r))
+        .catch((err) => console.error("[demo-cleanup] failed", err));
+    setInterval(demoCleanup, DEMO_CLEANUP_EVERY_MS).unref();
 
     globalThis.__pdfWorker = { wake: () => schedule(0) };
     schedule(0);

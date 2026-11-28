@@ -9,7 +9,7 @@ import { chats } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
 import { wakeWorker } from "@/lib/jobs/worker";
 import { userUploadPrefix } from "@/lib/s3";
-import { LIMITS, checkLimits, tooManyRequests } from "@/lib/rate-limit";
+import { LIMITS, checkLimits, tooManyRequests, limitSubject } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
     file_key: z.string().min(1).max(1024),
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     if (!file_key.startsWith(userUploadPrefix(session.userId)) || file_key.includes("..")) {
         return NextResponse.json({ message: "Invalid file" }, { status: 403 });
     }
-    const limited = await checkLimits([[`create-chat:${session.userId}`, LIMITS.chatsCreatedPerUserHour]]);
+    const limited = await checkLimits([[`create-chat:${limitSubject(session, req)}`, LIMITS.chatsCreatedPerUserHour]]);
     if (limited) return tooManyRequests(limited, "You've reached the upload limit. Please try again later.");
     try {
         const existing = await db.select({ id: chats.id }).from(chats).where(eq(chats.file_key, file_key));

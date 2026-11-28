@@ -279,4 +279,23 @@ describe.skipIf(!BASE)("account settings", () => {
         await expect(getS3Client().headObject({ Bucket: process.env.S3_BUCKET_NAME!, Key: file_key })).rejects.toThrow();
         expect((await new Client().post("/api/auth/sign-in", { email, password })).status).toBe(401);
     });
+
+    it("signs in to the demo for 15 minutes and protects the account", async () => {
+        const demo = new Client();
+        const res = await demo.post("/api/auth/demo");
+        expect(res.status).toBe(200);
+        expect(res.headers.get("set-cookie")).toMatch(/Max-Age=900/i);
+        expect((await demo.get("/chat")).status).toBe(200);
+
+        // the shown credentials work on the normal sign-in form too
+        const viaForm = new Client();
+        const signIn = await viaForm.post("/api/auth/sign-in", { email: "demo@chatpdf.app", password: "try-chatpdf-demo" });
+        expect(signIn.status).toBe(200);
+        expect(signIn.headers.get("set-cookie")).toMatch(/Max-Age=900/i);
+
+        expect((await demo.post("/api/account/password", { currentPassword: "try-chatpdf-demo", newPassword: "hijacked-123" })).status).toBe(403);
+        expect((await demo.req("DELETE", "/api/account", { password: "try-chatpdf-demo" })).status).toBe(403);
+        // the demo is confirmed, so it can upload straight away
+        expect((await demo.post("/api/upload-url", { file_name: "d.pdf", file_type: "application/pdf", file_size: 10 })).status).toBe(200);
+    });
 });

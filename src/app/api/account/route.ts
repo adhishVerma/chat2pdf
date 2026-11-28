@@ -11,6 +11,7 @@ const bodySchema = z.object({ password: z.string().min(1).max(200) });
 export async function DELETE(req: Request) {
     const session = await getSession();
     if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (session.isDemo) return NextResponse.json({ message: "The demo account can't be deleted" }, { status: 403 });
 
     const parsed = bodySchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ message: "Enter your password to confirm" }, { status: 400 });

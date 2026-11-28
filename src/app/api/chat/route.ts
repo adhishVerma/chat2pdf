@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { chats } from "@/lib/db/schema";
 import { recentMessages, storeMessage } from "@/lib/db/store-message";
 import { MAX_HISTORY_TURNS, answerQuestion } from "@/lib/rag";
-import { LIMITS, checkLimits } from "@/lib/rate-limit";
+import { LIMITS, checkLimits, limitSubject } from "@/lib/rate-limit";
 import { checkChatBudget } from "@/lib/usage";
 
 const bodySchema = z.object({
@@ -40,8 +40,8 @@ export async function POST(req: Request) {
     // the rate limits and the daily budget are independent checks; run them together
     const [limited, overBudget] = await Promise.all([
         checkLimits([
-            [`chat:minute:${session.userId}`, LIMITS.chatPerUserMinute],
-            [`chat:day:${session.userId}`, LIMITS.chatPerUserDay],
+            [`chat:minute:${limitSubject(session, req)}`, LIMITS.chatPerUserMinute],
+            [`chat:day:${limitSubject(session, req)}`, LIMITS.chatPerUserDay],
         ]),
         checkChatBudget(session.userId),
     ]);
