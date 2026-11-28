@@ -71,6 +71,23 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         }
     });
 
+    it("refuses API writes from another site", async () => {
+        const res = await fetch(BASE + "/api/chat", {
+            method: "POST",
+            headers: { "content-type": "application/json", origin: "https://evil.example", cookie: owner.cookie },
+            body: JSON.stringify({ chatId: 1, question: "hi" }),
+        });
+        expect(res.status).toBe(403);
+        // same-origin requests still work
+        const ok = await fetch(BASE + "/api/upload-url", {
+            method: "POST",
+            headers: { "content-type": "application/json", origin: BASE!, cookie: owner.cookie },
+            body: JSON.stringify({ file_name: "a.pdf", file_type: "application/pdf", file_size: 10 }),
+        });
+        // (403 here is the email check, not the cross-site check)
+        expect((await ok.json()).message).not.toBe("Cross-site request refused");
+    });
+
     it("requires a confirmed email before uploading", async () => {
         const res = await owner.post("/api/upload-url", { file_name: "a.pdf", file_type: "application/pdf", file_size: 10 });
         expect(res.status).toBe(403);
