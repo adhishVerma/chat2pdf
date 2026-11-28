@@ -43,6 +43,8 @@ DO $$ BEGIN
     END IF;
 END $$;
 CREATE INDEX IF NOT EXISTS chats_queue_idx ON chats (status, next_attempt_at);
+-- a name the user gave the chat; the sidebar falls back to pdf_name
+ALTER TABLE chats ADD COLUMN IF NOT EXISTS title text;
 
 CREATE TABLE IF NOT EXISTS messages (
     id         serial PRIMARY KEY,

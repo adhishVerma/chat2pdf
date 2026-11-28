@@ -45,6 +45,7 @@ export const authTokens = pgTable('auth_tokens', {
 export const chats = pgTable('chats', {
     id: serial('id').primaryKey(),
     pdfName: text('pdf_name').notNull(),
+    title: text('title'), // set when the user renames the chat; otherwise show pdfName
     pdfUrl: text('pdf_url').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     userId: varchar('userId', { length: 256 }).notNull().references(() => users.id, { onDelete: 'cascade' }),

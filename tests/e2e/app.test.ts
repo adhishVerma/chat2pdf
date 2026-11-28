@@ -200,6 +200,16 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect(await res.text()).toContain("TURNS=4");
     });
 
+    it("renames a chat, and an empty name goes back to the file name", async () => {
+        const res = await owner.req("PATCH", `/api/chat/${chatId}`, { title: "  Criminal   law notes " });
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({ title: "Criminal law notes", name: "Criminal law notes" });
+        expect((await owner.req("PATCH", `/api/chat/${chatId}`, { title: "x".repeat(121) })).status).toBe(400);
+        const reset = await (await owner.req("PATCH", `/api/chat/${chatId}`, { title: "" })).json();
+        expect(reset).toMatchObject({ title: null, name: "sample.pdf" });
+        await owner.req("PATCH", `/api/chat/${chatId}`, { title: "Criminal law notes" });
+    });
+
     it("serves the PDF through a signed redirect", async () => {
         const res = await owner.get(`/api/chat/${chatId}/pdf`);
         expect(res.status).toBe(302);
@@ -212,6 +222,7 @@ describe.skipIf(!BASE)("chat2pdf end to end", () => {
         expect((await other.get(`/api/chat/${chatId}/pdf`)).status).toBe(404);
         expect((await other.post("/api/chat", { chatId, question: "hi" })).status).toBe(401);
         expect((await other.req("DELETE", `/api/chat/${chatId}`)).status).toBe(401);
+        expect((await other.req("PATCH", `/api/chat/${chatId}`, { title: "mine now" })).status).toBe(404);
 
         // knowing the owner's file key isn't enough to open their PDF in a chat of your own
         const { file_key } = await (await owner.get(`/api/chat/${chatId}`)).json();
