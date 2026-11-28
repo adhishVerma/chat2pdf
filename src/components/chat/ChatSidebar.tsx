@@ -23,8 +23,8 @@ const ChatSidebar = async (props: Props) => {
     <div className='h-full bg-primary-foreground p-2 rounded'>
       <Link href={`/chat`}>
         <Button className='w-full bg-inherit my-2' variant="outline">Create new chat</Button></Link>
-      {_chats.map((item, index) => {
-        return (<ChatItem key={index} item={item} chatId={props.chatId} />)
+      {_chats.map((item) => {
+        return (<ChatItem key={item.id} item={item} chatId={props.chatId} />)
       })}
       <h2 className='opacity-75 font-light text-sm text-center mb-5 text-opacity-50 mt-12'>Your previous chats</h2>
     </div>
