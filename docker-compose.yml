@@ -1,5 +1,6 @@
-# Local / single-server setup: Postgres with pgvector + the app.
-# On AWS you can run this on EC2 as-is, or point DATABASE_URL at RDS and run only the app.
+# Local development: Postgres with pgvector (+ the app with `--profile app`).
+# Ports are bound to 127.0.0.1 so the database (default password!) is never
+# reachable from the network. For a server, use deploy/docker-compose.prod.yml.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -9,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chat2pdf}
       POSTGRES_DB: chat2pdf
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -24,7 +25,7 @@ services:
       DATABASE_URL: postgres://chat2pdf:${POSTGRES_PASSWORD:-chat2pdf}@db:5432/chat2pdf
       DATABASE_SSL: "false"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     profiles: ["app"]
 
 volumes:
