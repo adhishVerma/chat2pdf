@@ -15,6 +15,8 @@ export const LIMITS = {
     chatPerUserDay: { limit: 300, windowSeconds: 24 * 60 * 60 },
     emailPerUser: { limit: 3, windowSeconds: 60 * 60 },
     emailPerIp: { limit: 10, windowSeconds: 60 * 60 },
+    chatsCreatedPerUserHour: { limit: 20, windowSeconds: 60 * 60 },
+    retriesPerUserHour: { limit: 10, windowSeconds: 60 * 60 }, // each retry re-embeds the whole PDF
     passwordChecksPerUser: { limit: 10, windowSeconds: 15 * 60 }, // change password, delete account
 } satisfies Record<string, Limit>;
 
