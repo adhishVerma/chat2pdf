@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Loader2, Menu, X } from 'lucide-react'
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useAStore } from '@/store/store'
 
@@ -85,12 +84,8 @@ function MobileChat({ sidebar, chatId, pdf, chat }: { sidebar: React.ReactNode; 
       </div>
       {/* both panes stay mounted so the conversation and the PDF keep their state */}
       <div role='tabpanel' aria-label='Chat' className={`${tab === 'chat' ? 'flex' : 'hidden'} min-h-0 grow flex-col`}>{chat}</div>
-      <div role='tabpanel' aria-label='PDF' className={`${tab === 'pdf' ? 'flex' : 'hidden'} min-h-0 grow flex-col gap-2`}>
+      <div role='tabpanel' aria-label='PDF' className={`${tab === 'pdf' ? 'flex' : 'hidden'} min-h-0 grow flex-col`}>
         <div className='relative min-h-0 grow overflow-hidden rounded border'>{pdf}</div>
-        {/* some phone browsers can't show a PDF inside the page */}
-        <a href={`/api/chat/${chatId}/pdf${pdfPage ? `#page=${pdfPage.page}` : ''}`} target='_blank' rel='noopener noreferrer' className='text-center text-xs underline opacity-75'>
-          Open the PDF in a new tab
-        </a>
       </div>
     </div>
   )
@@ -125,10 +120,7 @@ export default function ChatShell({ sidebar, main, chatId, pdf, chat }: Props) {
         </ResizablePanel>
         {chatId ? (
           <>
-            <ResizablePanel defaultSize={45} className='relative border w-full h-full p-4'>
-              <div className='w-full h-full absolute top-0 left-0 -z-10 p-4'>
-                <Skeleton className='w-full h-full rounded-lg' />
-              </div>
+            <ResizablePanel defaultSize={45} className='border w-full h-full'>
               {pdf}
             </ResizablePanel>
             <ResizablePanel defaultSize={40} className='w-full flex flex-col p-4 border'>
