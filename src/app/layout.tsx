@@ -45,7 +45,7 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               <Toaster />
-              <div className="flex flex-col overflow-hidden min-h-screen">
+              <div className="flex flex-col overflow-hidden h-dvh">
                 <Header />
                 <div className="p-2 grow relative">
                   <div className="absolute top-0 left-0 h-full w-full">

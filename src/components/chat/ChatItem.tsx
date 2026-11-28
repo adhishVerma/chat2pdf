@@ -94,7 +94,7 @@ const ChatItem = ({ item, chatId }: Props) => {
             {item.status === 'failed' && <AlertTriangle aria-label='Processing failed' className='size-4 flex-shrink-0 text-red-600 dark:text-red-400' />}
             {!editing && (
                 <button type='button' aria-label='Rename chat' title='Rename' onClick={startEditing}
-                    className={`flex-shrink-0 ${selected ? 'opacity-45' : 'opacity-0'} group-hover:opacity-45 focus:opacity-75 hover:!opacity-75`}>
+                    className={`flex-shrink-0 ${selected ? 'opacity-45' : 'opacity-0'} group-hover:opacity-45 [@media(hover:none)]:opacity-45 focus:opacity-75 hover:!opacity-75`}>
                     <Pencil className='size-4' />
                 </button>
             )}
